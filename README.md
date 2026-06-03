@@ -1,0 +1,2 @@
+# LearningQuickDraw
+QuickDrawの学習兼QuickDrawの技術・知識を活用したものを制作するリポジトリです
