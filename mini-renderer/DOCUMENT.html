@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Software Renderer - Technical Document</title>
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #1a1d2e;
+    --border:   #2a2d3e;
+    --accent:   #00ff88;
+    --accent2:  #4488ff;
+    --accent3:  #ff6644;
+    --text:     #e0e0e0;
+    --muted:    #888;
+    --code-bg:  #0d1117;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ---- Layout ---- */
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+
+  /* ---- Header ---- */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+    margin-bottom: 48px;
+  }
+  header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  header .subtitle { color: var(--muted); font-size: 0.95rem; }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin: 6px 4px 0 0;
+  }
+  .badge-green  { background: #0d2b1d; color: var(--accent);  border: 1px solid #1a5c3a; }
+  .badge-blue   { background: #0d1e3a; color: var(--accent2); border: 1px solid #1a3a6e; }
+  .badge-orange { background: #2b1a0d; color: #ffaa44;        border: 1px solid #6e3a1a; }
+
+  /* ---- TOC ---- */
+  nav {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 48px;
+  }
+  nav h2 { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; }
+  nav ol { padding-left: 20px; }
+  nav li { margin: 4px 0; }
+  nav a { color: var(--accent2); text-decoration: none; font-size: 0.9rem; }
+  nav a:hover { color: var(--accent); }
+
+  /* ---- Sections ---- */
+  section { margin-bottom: 64px; }
+  h2 {
+    font-size: 1.5rem;
+    color: var(--accent);
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+    margin-bottom: 24px;
+  }
+  h3 {
+    font-size: 1.1rem;
+    color: var(--accent2);
+    margin: 32px 0 12px;
+  }
+  h4 { font-size: 0.95rem; color: #aaa; margin: 20px 0 8px; font-weight: 600; }
+  p  { margin-bottom: 12px; color: #ccc; }
+
+  /* ---- Code ---- */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    margin: 12px 0 20px;
+    color: #c9d1d9;
+  }
+  code {
+    background: #1e2230;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-family: 'Cascadia Code', monospace;
+    font-size: 0.85em;
+    color: var(--accent);
+  }
+
+  /* ---- Tables ---- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 0.88rem;
+  }
+  th {
+    background: var(--surface);
+    color: var(--muted);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: .05em;
+  }
+  td {
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    color: #ccc;
+  }
+  tr:hover td { background: #151825; }
+  td code { font-size: 0.8em; }
+
+  /* ---- Pipeline diagram ---- */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 16px 0 24px;
+  }
+  .pipeline-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+  .pipeline-box {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+  }
+  .pipeline-box .label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 2px; }
+  .pipeline-box .name  { color: var(--accent); font-weight: 600; }
+  .pipeline-arrow { text-align: center; color: var(--border); font-size: 1.2rem; padding: 2px 0; }
+
+  /* ---- Algorithm card ---- */
+  .algo-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .algo-card .ref {
+    display: inline-block;
+    background: #0d2b1d;
+    color: var(--accent);
+    border: 1px solid #1a5c3a;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    margin-bottom: 12px;
+  }
+
+  /* ---- Footer ---- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+    margin-top: 48px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===================== HEADER ===================== -->
+<header>
+  <h1>Mini Software Renderer</h1>
+  <p class="subtitle">Technical Document — QuickDraw Algorithm Implementation</p>
+  <div>
+    <span class="badge badge-green">C++17</span>
+    <span class="badge badge-blue">SDL2</span>
+    <span class="badge badge-orange">QuickDraw 1984</span>
+    <span class="badge badge-green">Z-Buffer</span>
+    <span class="badge badge-blue">Software Rasterizer</span>
+  </div>
+</header>
+
+<!-- ===================== TOC ===================== -->
+<nav>
+  <h2>目次</h2>
+  <ol>
+    <li><a href="#overview">プロジェクト概要</a></li>
+    <li><a href="#architecture">アーキテクチャ</a></li>
+    <li><a href="#algorithms">アルゴリズム詳解</a>
+      <ol>
+        <li><a href="#dda">DDA ライン描画</a></li>
+        <li><a href="#fixed">固定小数点最適化</a></li>
+        <li><a href="#slab">スラブ三角形ラスタライズ</a></li>
+        <li><a href="#zbuffer">Zバッファ（深度バッファ）</a></li>
+        <li><a href="#perspective">透視投影</a></li>
+        <li><a href="#rotation">3D回転行列</a></li>
+        <li><a href="#clipping">リージョンクリッピング</a></li>
+      </ol>
+    </li>
+    <li><a href="#mapping">QuickDraw / GPU 対応表</a></li>
+    <li><a href="#files">ファイル構成</a></li>
+    <li><a href="#build">ビルド手順</a></li>
+    <li><a href="#roadmap">ロードマップ</a></li>
+  </ol>
+</nav>
+
+<!-- ===================== OVERVIEW ===================== -->
+<section id="overview">
+  <h2>1. プロジェクト概要</h2>
+  <p>
+    Apple Macintosh (1984) のグラフィクスAPI <strong>QuickDraw</strong> の描画アルゴリズムを
+    現代C++で再実装したCPUソフトウェアレンダラー。<br>
+    流体エフェクト・映像描画最適化の基礎研究プロジェクト <strong>Phase 1</strong> として構築。
+  </p>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>言語</td><td>C++17</td></tr>
+    <tr><td>描画方式</td><td>CPU ソフトウェアレンダリング（GPU使用なし）</td></tr>
+    <tr><td>ウィンドウ</td><td>SDL2 (FetchContentで自動取得)</td></tr>
+    <tr><td>参考文献</td><td>The Art of QuickDraw (Apple, 1984)</td></tr>
+    <tr><td>目的</td><td>描画パイプライン基礎理解 / 流体エフェクト最適化の土台</td></tr>
+  </table>
+</section>
+
+<!-- ===================== ARCHITECTURE ===================== -->
+<section id="architecture">
+  <h2>2. アーキテクチャ</h2>
+
+  <h3>レイヤー構成</h3>
+  <div class="pipeline">
+    <div class="pipeline-box">
+      <div class="label">Application Layer</div>
+      <div class="name">main.cpp — メインループ / キューブ定義 / 3D変換 / 投影</div>
+    </div>
+    <div class="pipeline-arrow">↓</div>
+    <div class="pipeline-box">
+      <div class="label">Rendering Layer</div>
+      <div class="name">Renderer — DDA / スラブラスタライズ / Zバッファ / クリッピング</div>
+    </div>
+    <div class="pipeline-arrow">↓</div>
+    <div class="pipeline-box">
+      <div class="label">Buffer Layer</div>
+      <div class="name">Framebuffer — ピクセルバッファ (ARGB8888) + 深度バッファ (float)</div>
+    </div>
+    <div class="pipeline-arrow">↓</div>
+    <div class="pipeline-box">
+      <div class="label">Display Layer</div>
+      <div class="name">SDL2 Texture — SDL_UpdateTexture → SDL_RenderPresent</div>
+    </div>
+  </div>
+
+  <h3>データフロー</h3>
+  <pre>
+Vec3 (3D頂点)
+  |
+  |  Mat4::transform()        ... 回転行列を適用
+  v
+Vec3 (変換後ビュー空間)
+  |
+  |  perspectiveProject()     ... 透視除算 + スクリーン座標変換
+  v
+ProjVert { sx, sy, depth }
+  |
+  |  fillTriangleZ()          ... スラブラスタライズ + Z補間 + 深度テスト
+  v
+Framebuffer { m_pixels[], m_depth[] }
+  |
+  |  SDL_UpdateTexture()      ... GPUテクスチャに転送
+  v
+画面</pre>
+</section>
+
+<!-- ===================== ALGORITHMS ===================== -->
+<section id="algorithms">
+  <h2>3. アルゴリズム詳解</h2>
+
+  <!-- DDA -->
+  <div class="algo-card" id="dda">
+    <div class="ref">QuickDraw: 0501DDALine.p</div>
+    <h3 style="margin-top:0">3-1. DDA ライン描画</h3>
+    <p>
+      DDA (Digital Differential Analyzer) は直線描画の基本アルゴリズム。
+      傾き <code>slope = dy/dx</code> を1ステップずつ加算してピクセル座標を求める。
+    </p>
+    <h4>原理</h4>
+    <pre>
+水平方向が主軸 (|dx| >= |dy|):
+  slope = dy / dx
+
+  for x = x0 to x1:
+    putPixel(x, round(y))
+    y += slope
+
+垂直方向が主軸 (|dy| > |dx|):
+  slope = dx / dy
+
+  for y = y0 to y1:
+    putPixel(round(x), y)
+    x += slope</pre>
+    <h4>実装</h4>
+    <pre>
+float slope = (float)dv / (float)dh;
+float fy    = (float)y0;
+for (int x = x0; x &lt;= x1; x++) {
+    putPixel(x, (int)std::round(fy), color);
+    fy += slope;
+}</pre>
+  </div>
+
+  <!-- Fixed-point -->
+  <div class="algo-card" id="fixed">
+    <div class="ref">QuickDraw: 0503DDAFixedLineSpeed.p / 0519Arith64.asm</div>
+    <h3 style="margin-top:0">3-2. 固定小数点最適化</h3>
+    <p>
+      float演算 (除算・round) を整数演算 (乗算・ビットシフト) に置き換えて高速化。
+      QuickDrawがMotorola 68000アセンブリで実践した最適化手法。
+    </p>
+    <h4>16.16 固定小数点形式</h4>
+    <pre>
+32bit整数を上位16bit(整数部) + 下位16bit(小数部) に分割
+
+3.5  =>  3 * 65536 + 32768  =  0x00038000
+
+変換:
+  float -> fixed  :  (int)(value * 65536)  または  value &lt;&lt; 16
+  fixed -> int    :  value >> 16            (round()の代替)
+  スロープ計算   :  (dy &lt;&lt; 16) / dx        (除算は初期化時1回のみ)
+  加算           :  fixed_a + fixed_b       (通常の整数加算)</pre>
+    <h4>実装比較</h4>
+    <pre>
+// --- float版 (遅い) ---
+float slope = (float)dv / (float)dh;  // float除算
+float fy    = (float)y0;
+for (int x = x0; x &lt;= x1; x++) {
+    putPixel(x, (int)std::round(fy), color);  // round() コスト大
+    fy += slope;
+}
+
+// --- 固定小数点版 (速い) ---
+int slope = (dv &lt;&lt; 16) / dh;  // 除算は1回だけ
+int fy    = y0 &lt;&lt; 16;
+for (int x = x0; x &lt;= x1; x++) {
+    putPixel(x, fy >> 16, color);  // >>16 = round()代替
+    fy += slope;                    // 整数加算のみ
+}</pre>
+  </div>
+
+  <!-- Slab -->
+  <div class="algo-card" id="slab">
+    <div class="ref">QuickDraw: 0507FixedRectSlabDrawLine.p</div>
+    <h3 style="margin-top:0">3-3. スラブ三角形ラスタライズ</h3>
+    <p>
+      三角形を水平なスキャンライン（スラブ）に分解し、
+      各行の左端・右端X座標を長辺と短辺の交差点から求めて塗りつぶす。
+      現代GPUのラスタライザと本質的に同じ処理。
+    </p>
+    <h4>処理の流れ</h4>
+    <pre>
+      * (x0, y0)      &lt;-- top
+     /|
+    / |  長辺 (y0->y2)
+   /  |
+  * --+-------        &lt;-- 各スキャンラインで横塗り (スラブ)
+  |   |
+  |   |  長辺続き
+  *---*               &lt;-- bottom (x2, y2)
+(x1,y1)
+
+1. 頂点をY順にソート: top / mid / bottom
+2. 長辺 (v0->v2) と短辺 (v0->v1, v1->v2) を特定
+3. for y = y0 to y2:
+     xa = 長辺上のX  =  x0 + (x2-x0) * (y-y0) / totalH
+     xb = 短辺上のX
+     for x = xa to xb: putPixel(x, y)</pre>
+  </div>
+
+  <!-- Z-buffer -->
+  <div class="algo-card" id="zbuffer">
+    <div class="ref">現代の拡張 (QuickDrawにはなかった概念)</div>
+    <h3 style="margin-top:0">3-4. Zバッファ（深度バッファ）</h3>
+    <p>
+      複数の三角形が重なるとき、手前のピクセル（Z値が小さい）だけを描画する。
+      ピクセルと同解像度の float 配列で深度を管理。
+    </p>
+    <h4>データ構造</h4>
+    <pre>
+Framebuffer:
+  m_pixels[W * H]  : ARGB8888 色バッファ
+  m_depth[W * H]   : float    深度バッファ  (初期値: FLT_MAX)</pre>
+    <h4>深度テスト</h4>
+    <pre>
+bool testAndSetDepth(int x, int y, float depth) {
+    float&amp; slot = m_depth[y * m_width + x];
+    if (depth &lt; slot) {   // 新しいZが既存より手前?
+        slot = depth;      // バッファ更新
+        return true;       // 描画許可
+    }
+    return false;          // 描画スキップ (奥にある)
+}</pre>
+    <h4>スキャンライン内Z補間</h4>
+    <pre>
+// 辺の端点でZ値を補間 (スラブと同じ手順でZも計算)
+float za = z0 + (z2 - z0) * t;      // 長辺上のZ
+float zb = z1_edge;                  // 短辺上のZ
+
+// ピクセルごとにZ補間
+float frac = (x - xa) / (xb - xa);
+float z    = za + (zb - za) * frac;
+
+if (fb.testAndSetDepth(x, y, z)) {
+    fb.setPixel(x, y, color);
+}</pre>
+    <h4>毎フレームのリセット</h4>
+    <pre>
+fb.clear(0xFF111111);  // 色バッファをクリア
+fb.clearDepth();        // 深度バッファを FLT_MAX にリセット</pre>
+  </div>
+
+  <!-- Perspective -->
+  <div class="algo-card" id="perspective">
+    <div class="ref">QuickDraw: Graf3D ViewAngle / LookAt</div>
+    <h3 style="margin-top:0">3-5. 透視投影</h3>
+    <pre>
+焦点距離: f = 1 / tan(fov / 2)
+
+投影:
+  px = (x * f) / z
+  py = (y * f) / z
+
+スクリーン座標:
+  sx = px *  W/2  +  W/2   (中心 = 画面中央)
+  sy = py * -H/2  +  H/2   (Y軸反転: スクリーン下方向がプラス)
+
+深度値:
+  depth = z  (小さい = カメラに近い = 手前)</pre>
+  </div>
+
+  <!-- Rotation -->
+  <div class="algo-card" id="rotation">
+    <div class="ref">QuickDraw: Graf3D Pitch() / Yaw() / Roll()  / 0601RotatingCube.p</div>
+    <h3 style="margin-top:0">3-6. 3D回転行列（Pitch / Yaw / Roll）</h3>
+    <h4>各軸の回転行列</h4>
+    <pre>
+X軸 Pitch:          Y軸 Yaw:            Z軸 Roll:
+| 1   0    0  |     | c  0  s |          | c -s  0 |
+| 0  cos -sin |     | 0  1  0 |          | s  c  0 |
+| 0  sin  cos |     |-s  0  c |          | 0  0  1 |
+(c = cos(angle), s = sin(angle))</pre>
+    <h4>合成と適用</h4>
+    <pre>
+// 毎フレーム角度を更新
+pitch += 0.010f;
+yaw   += 0.020f;
+roll  += 0.005f;
+
+// 行列合成
+Mat4 rot = Mat4::rotationX(pitch)
+         * Mat4::rotationY(yaw)
+         * Mat4::rotationZ(roll);
+
+// 全頂点に適用
+for (int i = 0; i &lt; 8; i++) {
+    Vec3 v = rot.transform(CUBE_VERTS[i]);
+    projected[i] = perspectiveProject(v, W, H, 60.0f);
+}</pre>
+  </div>
+
+  <!-- Clipping -->
+  <div class="algo-card" id="clipping">
+    <div class="ref">QuickDraw: 0310RegionClipping.p / SetClip</div>
+    <h3 style="margin-top:0">3-7. リージョンクリッピング</h3>
+    <p>矩形の範囲外ピクセルを棄却する。ハードウェアのシザーテストと同等。</p>
+    <pre>
+void putPixel(int x, int y, uint32_t color) {
+    if (m_clipEnabled) {
+        if (x &lt; m_clipX || x >= m_clipX + m_clipW) return;
+        if (y &lt; m_clipY || y >= m_clipY + m_clipH) return;
+    }
+    m_fb.setPixel(x, y, color);
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== MAPPING ===================== -->
+<section id="mapping">
+  <h2>4. 対応表</h2>
+  <h3>QuickDraw との対応</h3>
+  <table>
+    <tr><th>本実装</th><th>QuickDrawファイル</th><th>内容</th></tr>
+    <tr><td><code>drawLineDDA()</code></td><td><code>0501DDALine.p</code></td><td>浮動小数点DDA</td></tr>
+    <tr><td><code>drawLineFixed()</code></td><td><code>0503DDAFixedLineSpeed.p</code></td><td>固定小数点DDA</td></tr>
+    <tr><td><code>fillTriangle()</code></td><td><code>0507FixedRectSlabDrawLine.p</code></td><td>スラブ三角形塗りつぶし</td></tr>
+    <tr><td><code>setClipRect()</code></td><td><code>0310RegionClipping.p</code></td><td>矩形クリッピング</td></tr>
+    <tr><td><code>Mat4::rotationX/Y/Z()</code></td><td><code>Graf3D Pitch/Yaw/Roll</code></td><td>3D回転</td></tr>
+    <tr><td><code>perspectiveProject()</code></td><td><code>Graf3D ViewAngle/LookAt</code></td><td>透視投影</td></tr>
+    <tr><td><code>Framebuffer</code></td><td><code>GrafPort portBits</code></td><td>ピクセルバッファ</td></tr>
+    <tr><td><code>fillTriangleZ()</code></td><td>—（現代の拡張）</td><td>Zバッファ付き描画</td></tr>
+  </table>
+
+  <h3>現代GPUパイプラインとの対応</h3>
+  <table>
+    <tr><th>本実装 (CPU)</th><th>GPU パイプライン</th></tr>
+    <tr><td><code>rot.transform(v)</code></td><td>Vertex Shader</td></tr>
+    <tr><td><code>perspectiveProject()</code></td><td>Rasterizer (projection stage)</td></tr>
+    <tr><td><code>fillTriangleZ()</code> slab loop</td><td>Rasterizer (scanline conversion)</td></tr>
+    <tr><td>Z補間 + <code>testAndSetDepth()</code></td><td>Depth Test / Depth Buffer</td></tr>
+    <tr><td><code>putPixel()</code></td><td>Fragment Shader output</td></tr>
+    <tr><td><code>SDL_UpdateTexture()</code></td><td>Frame Buffer Present</td></tr>
+  </table>
+</section>
+
+<!-- ===================== FILES ===================== -->
+<section id="files">
+  <h2>5. ファイル構成</h2>
+  <pre>
+mini-renderer/
+├── CMakeLists.txt          SDL2 自動取得 (FetchContent) + ビルド設定
+└── src/
+    ├── math3d.h            Vec3 / Vec2 / ProjVert / Mat4 / perspectiveProject
+    ├── framebuffer.h       ピクセルバッファ + 深度バッファ インターフェース
+    ├── framebuffer.cpp     Framebuffer 実装
+    ├── renderer.h          DDA / スラブ / Zバッファ / クリッピング インターフェース
+    ├── renderer.cpp        Renderer 実装
+    └── main.cpp            メインループ / キューブ定義 / 3D変換処理</pre>
+</section>
+
+<!-- ===================== BUILD ===================== -->
+<section id="build">
+  <h2>6. ビルド手順</h2>
+  <pre>
+# CMake 設定 (初回のみ SDL2 を GitHub から自動取得)
+cmake -B build -G "Visual Studio 17 2022"
+
+# ビルド
+cmake --build build --config Release
+
+# 実行
+.\build\Release\mini-renderer.exe</pre>
+  <table>
+    <tr><th>キー</th><th>動作</th></tr>
+    <tr><td><code>Space</code></td><td>ワイヤーフレーム / ソリッド 切り替え</td></tr>
+    <tr><td><code>ESC</code></td><td>終了</td></tr>
+  </table>
+</section>
+
+<!-- ===================== ROADMAP ===================== -->
+<section id="roadmap">
+  <h2>7. ロードマップ</h2>
+  <table>
+    <tr><th>Phase</th><th>内容</th><th>状態</th></tr>
+    <tr>
+      <td><strong>Phase 1</strong></td>
+      <td>ミニソフトウェアレンダラー構築（本実装）<br>
+        DDA / スラブ / Zバッファ / 3D変換 / 透視投影</td>
+      <td><span class="badge badge-green">完了</span></td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong></td>
+      <td>GPU化：GLSL/HLSLシェーダーへ移植<br>CPU/GPU速度差の計測</td>
+      <td><span class="badge badge-blue">予定</span></td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong></td>
+      <td>Houdini / Blender アドオン<br>
+        Jet流体キャッシュ(.vol)読み込み / ダーティレクト最適化 / BVHカリング</td>
+      <td><span class="badge badge-blue">予定</span></td>
+    </tr>
+    <tr>
+      <td><strong>Phase 4</strong></td>
+      <td>After Effects プラグイン<br>
+        AEGPによるエフェクト統合 / 差分管理による高速化</td>
+      <td><span class="badge badge-blue">予定</span></td>
+    </tr>
+  </table>
+</section>
+
+<footer>
+  Mini Software Renderer — Based on The Art of QuickDraw (Apple, 1984)
+</footer>
+
+</div>
+</body>
+</html>

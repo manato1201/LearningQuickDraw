@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>描画アルゴリズムと最適化 — 実践講義ノート</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#58a6ff;--green:#3fb950;--orange:#f0883e;--yellow:#e3b341;--red:#ff7b72;--purple:#bc8cff;--text:#e6edf3;--muted:#8b949e;--code-bg:#010409;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.75;}
+.container{max-width:1000px;margin:0 auto;padding:48px 24px;}
+
+/* Header */
+header{border-bottom:2px solid var(--accent);padding-bottom:32px;margin-bottom:48px;}
+.lecture-meta{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px;}
+.meta-item{font-size:.82rem;color:var(--muted);}
+.meta-item span{color:var(--text);}
+header h1{font-size:2rem;font-weight:800;color:var(--text);margin-bottom:8px;}
+header .subtitle{color:var(--accent);font-size:1rem;}
+
+/* TOC */
+nav.toc{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 24px;margin-bottom:48px;}
+nav.toc h2{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;}
+.toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 32px;}
+.toc-grid a{color:var(--accent);text-decoration:none;font-size:.87rem;padding:2px 0;display:block;}
+.toc-grid a:hover{color:var(--green);}
+
+/* Lecture sections */
+.lecture{margin-bottom:72px;}
+.lecture-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:12px;}
+.lecture-num{background:var(--accent);color:#000;font-weight:800;font-size:.78rem;padding:3px 10px;border-radius:4px;white-space:nowrap;}
+.lecture h2{font-size:1.35rem;font-weight:700;color:var(--text);}
+
+h3{font-size:1.05rem;color:var(--green);margin:28px 0 10px;padding-left:8px;border-left:3px solid var(--green);}
+h4{font-size:.9rem;color:var(--orange);margin:20px 0 8px;font-weight:600;}
+p{color:#c9d1d9;margin-bottom:12px;font-size:.93rem;}
+
+/* Code */
+pre{background:var(--code-bg);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:4px;padding:16px 20px;overflow-x:auto;font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.8rem;line-height:1.65;margin:12px 0 20px;color:#c9d1d9;}
+code{background:#1e2230;border-radius:3px;padding:1px 5px;font-size:.83em;color:var(--green);font-family:'Cascadia Code',monospace;}
+
+/* Call-out boxes */
+.callout{border-radius:6px;padding:14px 18px;margin:16px 0 20px;font-size:.88rem;}
+.callout-question{background:#0d1e3a;border:1px solid #1a3a6e;border-left:4px solid var(--accent);}
+.callout-question::before{content:"Q  ";color:var(--accent);font-weight:700;}
+.callout-exercise{background:#0d2b1d;border:1px solid #1a5c3a;border-left:4px solid var(--green);}
+.callout-exercise::before{content:"演習  ";color:var(--green);font-weight:700;}
+.callout-tip{background:#2b1a0d;border:1px solid #6e3a1a;border-left:4px solid var(--orange);}
+.callout-tip::before{content:"実務Tips  ";color:var(--orange);font-weight:700;}
+.callout-answer{background:#1e0d2b;border:1px solid #4a1a6e;border-left:4px solid var(--purple);}
+.callout-answer::before{content:"解答例  ";color:var(--purple);font-weight:700;}
+.callout p,.callout pre{margin-bottom:6px;}
+.callout p:last-child{margin-bottom:0;}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:.85rem;}
+th{background:var(--surface);color:var(--muted);font-weight:600;text-align:left;padding:9px 14px;border:1px solid var(--border);text-transform:uppercase;font-size:.73rem;letter-spacing:.05em;}
+td{padding:8px 14px;border:1px solid var(--border);color:#c9d1d9;}
+tr:hover td{background:#151d2a;}
+
+/* Priority ladder */
+.priority{list-style:none;padding:0;margin:12px 0 20px;}
+.priority li{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px;font-size:.87rem;}
+.priority li .rank{background:var(--accent);color:#000;font-weight:800;font-size:.72rem;padding:2px 7px;border-radius:3px;min-width:60px;text-align:center;}
+.priority li:nth-child(1) .rank{background:#ff7b72;}
+.priority li:nth-child(2) .rank{background:var(--orange);}
+.priority li:nth-child(3) .rank{background:var(--yellow);}
+.priority li:nth-child(4) .rank{background:var(--green);}
+.priority li:nth-child(5) .rank{background:var(--accent);}
+.priority li:nth-child(6) .rank{background:var(--purple);}
+
+/* Summary box */
+.summary{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 24px;margin-top:48px;}
+.summary h3{border-left-color:var(--yellow);color:var(--yellow);margin-top:0;}
+.summary ul{padding-left:20px;}
+.summary li{margin:5px 0;font-size:.9rem;color:#c9d1d9;}
+
+footer{border-top:1px solid var(--border);padding-top:24px;margin-top:64px;color:var(--muted);font-size:.8rem;text-align:center;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <div class="lecture-meta">
+    <div class="meta-item">担当: <span>実務家教員（ゲーム・インフラ・ツール・システム開発）</span></div>
+    <div class="meta-item">対象: <span>大学3〜4年生 / 情報系専攻</span></div>
+    <div class="meta-item">前提: <span>C/C++ 基礎 / 線形代数 / 基本アルゴリズム</span></div>
+  </div>
+  <h1>描画アルゴリズムと最適化</h1>
+  <p class="subtitle">QuickDraw (1984) から学ぶ、現代レンダリングの本質</p>
+</header>
+
+<nav class="toc">
+  <h2>講義一覧（全10講）</h2>
+  <div class="toc-grid">
+    <a href="#l1">第1講: 描画の基本単位 — ピクセルとは何か</a>
+    <a href="#l2">第2講: 直線を描く — DDA アルゴリズム</a>
+    <a href="#l3">第3講: 三角形を塗る — スラブラスタライズ</a>
+    <a href="#l4">第4講: 3D 空間 — 変換行列と透視投影</a>
+    <a href="#l5">第5講: クリッピングと領域最適化</a>
+    <a href="#l6">第6講: GPU パイプライン — CPU 実装との対応</a>
+    <a href="#l7">第7講: 最適化の実践 — LOD と LRU</a>
+    <a href="#l8">第8講: DCC ツール統合</a>
+    <a href="#l9">第9講: アルゴリズムの選び方</a>
+    <a href="#l10">第10講: まとめと次のステップ</a>
+  </div>
+</nav>
+
+<!-- ==================== 第1講 ==================== -->
+<div class="lecture" id="l1">
+  <div class="lecture-header">
+    <span class="lecture-num">第1講</span>
+    <h2>描画の基本単位 — ピクセルとは何か</h2>
+  </div>
+
+  <p>この講義で私が伝えたいのは「<strong>なぜそうなっているか</strong>」です。GPUが何をやっているかを教科書で読むより、<strong>CPUで1ピクセルずつ手で書く</strong>方が100倍速く理解できます。</p>
+
+  <div class="callout callout-tip">
+    「GPUがやっていることの本質を理解したければ、まずCPUで同じことを自分で実装しろ」— 実務での鉄則
+  </div>
+
+  <h3>1.1 フレームバッファ</h3>
+  <p>画面に何かを表示するということは、<strong>メモリ上の配列に数値を書く</strong>ことです。</p>
+  <pre>
+// 640x480 ピクセルのフレームバッファ
+uint32_t pixels[640 * 480];   // = 1,228,800 バイト ≒ 1.2MB
+
+// ピクセル (x, y) に色を書く
+pixels[y * 640 + x] = 0xFFRRGGBB;  // ARGB8888 形式</pre>
+  <p>これは QuickDraw の <code>GrafPort portBits</code>（BitMap）と全く同じ構造です。After Effects の <code>PF_EffectWorld</code> も、OpenGL のフレームバッファも、<strong>本質は同じ「配列にピクセルを書く」</strong>だけです。</p>
+
+  <div class="callout callout-question">
+    <p>640×480、ARGB8888 のフレームバッファを 60fps で書き換えるとき、毎秒何 MB のデータを処理するか？</p>
+  </div>
+  <div class="callout callout-answer">
+    <p>640 × 480 × 4 bytes = 1,228,800 bytes × 60fps = <strong>73.7 MB/s</strong><br>
+    1ピクセルあたり: 16.7ms ÷ 307,200px = <strong>54 ナノ秒</strong>（約 160 CPU サイクル）</p>
+  </div>
+
+  <h3>1.2 なぜ最適化が必要か</h3>
+  <pre>
+60fps = 1フレームに 16.7ms しかない
+
+単純な全ピクセル更新: 307,200 回の処理が必要
+流体シミュレーション: 1ボクセルあたり数十の演算
+→ 最適化なしでは到底リアルタイムに間に合わない</pre>
+</div>
+
+<!-- ==================== 第2講 ==================== -->
+<div class="lecture" id="l2">
+  <div class="lecture-header">
+    <span class="lecture-num">第2講</span>
+    <h2>直線を描く — DDA アルゴリズム</h2>
+  </div>
+
+  <h3>2.1 問題の定式化</h3>
+  <p>「点 (x0,y0) から (x1,y1) までの直線をピクセルで描け」</p>
+
+  <h4>素朴な解法（なぜダメか）</h4>
+  <pre>
+// NG: ステップ幅 0.001 は恣意的、遅い、穴が開く可能性あり
+for (float t = 0; t &lt;= 1.0f; t += 0.001f) {
+    setPixel(x0 + (x1-x0)*t, y0 + (y1-y0)*t, color);
+}</pre>
+
+  <h3>2.2 DDA の考え方</h3>
+  <p><strong>DDA (Digital Differential Analyzer)</strong>: 「長い方の軸を主軸にして1ずつ進む」</p>
+  <pre>
+水平方向が長い (|dx| &gt;= |dy|):
+  x を 1 ずつ増やす  → |dx| 回で必ず終わる
+  y = y0 + slope * (x - x0)  → 毎ステップ slope を加算するだけ
+
+slope = (y1 - y0) / (x1 - x0)  ← 除算は初期化時に1回だけ！</pre>
+
+  <pre>
+// QuickDraw 0501DDALine.p の直訳 (C++)
+float slope = (float)(y1 - y0) / (float)(x1 - x0);
+float fy    = (float)y0;
+for (int x = x0; x &lt;= x1; x++) {
+    setPixel(x, (int)std::round(fy), color);
+    fy += slope;   // 毎ステップ加算のみ
+}</pre>
+
+  <h3>2.3 固定小数点最適化</h3>
+  <p>ボトルネック: <code>float</code> の加算と <code>round()</code>。QuickDraw の解決策 — 整数に変換する。</p>
+  <pre>
+16.16 固定小数点:
+  32bit整数の上位16bit = 整数部
+  32bit整数の下位16bit = 小数部
+
+  3.5 → 0x00038000  (3*65536 + 32768)
+
+  float加算  → 整数加算 (高速)
+  round()    → >> 16   (ビットシフト1回、超高速)</pre>
+
+  <pre>
+// QuickDraw 0503DDAFixedLineSpeed.p の直訳
+const int SHIFT = 16;
+int slope = (dv &lt;&lt; SHIFT) / dh;   // 除算1回のみ
+int fy    = y0 &lt;&lt; SHIFT;
+for (int x = x0; x &lt;= x1; x++) {
+    setPixel(x, fy >> SHIFT, color);   // >> 16 = round() の代替
+    fy += slope;                        // 整数加算のみ (最速)
+}</pre>
+
+  <div class="callout callout-tip">
+    QuickDraw 0519 Arith64.asm は Motorola 68000 (32bit CPU) で 64bit 演算を
+    <code>ADDX.L</code>（キャリー付き加算）命令で自前実装していた。
+    「ハードウェアの限界を知り、それを回避する」実務的思考の原点。
+  </div>
+
+  <div class="callout callout-exercise">
+    <p>点 (0,0) → (6,4) を DDA で描くとき、各 x での y 座標を求めよ。<br>（slope = 4/6 ≈ 0.667）</p>
+  </div>
+  <div class="callout callout-answer">
+    <p>x=0: 0.0→0, x=1: 0.667→1, x=2: 1.333→1, x=3: 2.0→2, x=4: 2.667→3, x=5: 3.333→3, x=6: 4.0→4</p>
+  </div>
+</div>
+
+<!-- ==================== 第3講 ==================== -->
+<div class="lecture" id="l3">
+  <div class="lecture-header">
+    <span class="lecture-num">第3講</span>
+    <h2>三角形を塗る — スラブラスタライズ</h2>
+  </div>
+
+  <h3>3.1 なぜ三角形か</h3>
+  <p>現代の GPU は全てのジオメトリを三角形に分解して描画します。理由: ①3点は必ず平面上にある ②凸図形なので塗りつぶしが単純 ③並列処理に最適。</p>
+
+  <h3>3.2 スラブ（Slab）描画の原理</h3>
+  <pre>
+      * top(x0,y0)
+     / \
+    /---\  ← スキャンライン（スラブ）1本
+   /-----\
+  *-------+  ← mid(x1,y1)
+  |       |
+  *-------*  ← bottom(x2,y2)
+
+アルゴリズム:
+  1. 頂点を Y 順にソート (top/mid/bottom)
+  2. 長辺 (top→bottom) と短辺 (top→mid, mid→bottom) を特定
+  3. y = top から bottom まで 1 ずつ:
+       xa = 長辺上の X
+       xb = 短辺上の X
+       for x = xa to xb: setPixel(x, y)  ← スラブ1本</pre>
+
+  <div class="callout callout-tip">
+    GPU のラスタライザも本質的にスキャンライン変換（スラブ）を行う。
+    Phase 2 では同じキューブを描くとき GPU がこれを秒間 <strong>10億回以上</strong>並列実行する。
+  </div>
+
+  <h3>3.3 Z バッファ（深度テスト）</h3>
+  <pre>
+// 深度バッファ: ピクセルと同解像度の float 配列
+float depth[W * H];  // 初期値: FLT_MAX（無限遠）
+
+bool testAndSetDepth(int x, int y, float z) {
+    if (z &lt; depth[y*W + x]) {
+        depth[y*W + x] = z;
+        return true;   // 手前 → 描画許可
+    }
+    return false;      // 奥   → スキップ
+}</pre>
+  <p>スキャンライン内での Z 線形補間:</p>
+  <pre>
+float frac = (float)(x - xa) / (float)(xb - xa);
+float z    = za + (zb - za) * frac;   // 左端Z と右端Z の間を補間</pre>
+</div>
+
+<!-- ==================== 第4講 ==================== -->
+<div class="lecture" id="l4">
+  <div class="lecture-header">
+    <span class="lecture-num">第4講</span>
+    <h2>3D 空間 — 変換行列と透視投影</h2>
+  </div>
+
+  <h3>4.1 回転行列 (Pitch / Yaw / Roll)</h3>
+  <pre>
+X軸回転(Pitch):       Y軸回転(Yaw):        Z軸回転(Roll):
+| 1   0    0  |       | c  0  s |           | c -s  0 |
+| 0  cos -sin |       | 0  1  0 |           | s  c  0 |
+| 0  sin  cos |       |-s  0  c |           | 0  0  1 |
+
+合成: rot = rotX(pitch) * rotY(yaw) * rotZ(roll)
+適用: v_out = rot * v_in</pre>
+
+  <div class="callout callout-tip">
+    行列の積は順序依存（非可換）。<code>rotX * rotY ≠ rotY * rotX</code><br>
+    これが「ジンバルロック」の根源。実務では Quaternion を使うことが多い。
+  </div>
+
+  <h3>4.2 透視投影</h3>
+  <pre>
+焦点距離: f = 1 / tan(fov / 2)
+
+投影:
+  px = (v.x * f) / z   ← 遠いほど小さく見える
+  py = (v.y * f) / z
+
+スクリーン変換:
+  sx = px * W/2 + W/2
+  sy = -py * H/2 + H/2  (Y 軸反転: スクリーンは下方向がプラス)</pre>
+
+  <div class="callout callout-exercise">
+    fov=60°, z=4.0 のとき f はいくつか？
+  </div>
+  <div class="callout callout-answer">
+    f = 1/tan(30°) = 1/0.577 ≈ <strong>1.732</strong>
+  </div>
+</div>
+
+<!-- ==================== 第5講 ==================== -->
+<div class="lecture" id="l5">
+  <div class="lecture-header">
+    <span class="lecture-num">第5講</span>
+    <h2>クリッピングと領域最適化</h2>
+  </div>
+
+  <h3>5.1 クリッピングの本質</h3>
+  <p>「<strong>見えない部分は描かない</strong>」— これが最大の最適化。</p>
+  <pre>
+// QuickDraw Ch3: SetClip の実装
+void putPixel(int x, int y) {
+    if (x &lt; clip_x || x >= clip_x + clip_w) return;  // 範囲外 → スキップ
+    if (y &lt; clip_y || y >= clip_y + clip_h) return;
+    pixels[y * W + x] = color;
+}</pre>
+
+  <h3>5.2 ダーティレクト（Dirty Rect）</h3>
+  <p>「<strong>変化した領域だけ再描画する</strong>」— 動画・ゲーム・UIで最も効果的な最適化。</p>
+  <pre>
+フレームn:    □□□□□
+フレームn+1:  □□■□□   ← 1箇所だけ変化（5%）
+
+ダーティレクト なし: 100% 再描画
+ダーティレクト あり:   5% 再描画  →  <strong>95% 削減</strong></pre>
+
+  <pre>
+# numpy ベクトル演算で高速差分計算
+diff          = np.abs(current - previous) > threshold
+changed_count = diff.sum()
+skip_ratio    = 1.0 - changed_count / diff.size
+# Phase 3-3 実測: 96.9% スキップ達成</pre>
+
+  <h3>5.3 BVH（階層バウンディングボリューム）</h3>
+  <pre>
+BVH ツリー:
+  ルート（全体 AABB）
+    ├─ 左子（左半分）
+    │    ├─ 葉（アイテム 1-4）
+    │    └─ 葉（アイテム 5-8）
+    └─ 右子（右半分）  ← 視野外なら このサブツリー全体をスキップ
+
+視錐台カリング: O(log N) で可視アイテムを抽出
+Phase 3-3 実測: 125アイテム / Depth 7 / 0.18ms で構築</pre>
+</div>
+
+<!-- ==================== 第6講 ==================== -->
+<div class="lecture" id="l6">
+  <div class="lecture-header">
+    <span class="lecture-num">第6講</span>
+    <h2>GPU パイプライン — CPU 実装との対応</h2>
+  </div>
+
+  <h3>6.1 CPU vs GPU</h3>
+  <table>
+    <tr><th></th><th>CPU (Phase 1)</th><th>GPU (Phase 2)</th></tr>
+    <tr><td>コア数</td><td>8〜16</td><td>数千〜数万</td></tr>
+    <tr><td>307,200px の処理</td><td>シングルスレッドで順番に</td><td>全ピクセルを同時並列</td></tr>
+    <tr><td>1フレームの処理時間</td><td>数十 ms</td><td>1ms 未満</td></tr>
+  </table>
+
+  <h3>6.2 パイプライン対応表</h3>
+  <table>
+    <tr><th>Phase 1 (CPU)</th><th>Phase 2 (GPU / GLSL)</th></tr>
+    <tr><td><code>rot.transform(v)</code></td><td>Vertex Shader: <code>uRotation * vec4(pos,1)</code></td></tr>
+    <tr><td><code>perspectiveProject()</code></td><td>Vertex Shader: <code>gl_Position = ...</code></td></tr>
+    <tr><td><code>fillTriangleZ()</code> スキャンライン</td><td>GPU Rasterizer（自動・ハードウェア）</td></tr>
+    <tr><td><code>testAndSetDepth()</code></td><td>GPU Depth Buffer（自動・ハードウェア）</td></tr>
+    <tr><td><code>putPixel()</code></td><td>Fragment Shader: <code>fragColor = ...</code></td></tr>
+  </table>
+
+  <h3>6.3 GLSL / HLSL 比較</h3>
+  <pre>
+// GLSL (OpenGL / Blender / Houdini)
+uniform mat4 uRotation;
+layout(location=0) in vec3 aPos;
+void main() {
+    vec3 r = (uRotation * vec4(aPos, 1.0)).xyz;
+    gl_Position = vec4(r.x, r.y, r.z/10.0, 1.0);
+}
+
+// HLSL (DirectX / Unreal Engine / After Effects)
+cbuffer cb : register(b0) { float4x4 uRotation; }
+float4 main(float3 aPos : POSITION) : SV_Position {
+    float3 r = mul(uRotation, float4(aPos, 1.0)).xyz;
+    return float4(r.x, r.y, r.z/10.0, 1.0);
+}</pre>
+</div>
+
+<!-- ==================== 第7講 ==================== -->
+<div class="lecture" id="l7">
+  <div class="lecture-header">
+    <span class="lecture-num">第7講</span>
+    <h2>最適化の実践 — LOD と LRU</h2>
+  </div>
+
+  <h3>7.1 LOD（Level of Detail）</h3>
+  <pre>
+距離  2 → LOD0 フル解像度  (64³)   処理量: 1
+距離 15 → LOD1 1/2 解像度  (32³)   処理量: 1/8    ← 12.5%
+距離 40 → LOD2 1/4 解像度  (16³)   処理量: 1/64   ← 1.6%
+距離 80 → LOD3 1/8 解像度  (8³)    処理量: 1/512  ← 0.2%
+
+1辺が 1/2 → x方向 1/2 × y方向 1/2 × z方向 1/2 = 1/8</pre>
+
+  <pre>
+# numpy ストライドスライスで O(1) に近い速度
+def downsample(data, lod):
+    step = 2 ** lod
+    return data[::step, ::step, ::step]  # コピーなし、参照のみ</pre>
+
+  <h3>7.2 LRU キャッシュ</h3>
+  <pre>
+from collections import OrderedDict
+
+class LRUCache:
+    def __init__(self, max_size=10):
+        self._cache = OrderedDict()
+        self._max   = max_size
+
+    def get(self, key):
+        if key in self._cache:
+            self._cache.move_to_end(key)   # 最近使用済みに更新
+            return self._cache[key]
+        return None
+
+    def put(self, key, value):
+        if len(self._cache) >= self._max:
+            self._cache.popitem(last=False)  # 最も古いものを破棄
+        self._cache[key] = value</pre>
+</div>
+
+<!-- ==================== 第8講 ==================== -->
+<div class="lecture" id="l8">
+  <div class="lecture-header">
+    <span class="lecture-num">第8講</span>
+    <h2>DCC ツール統合 — 理論から実装へ</h2>
+  </div>
+
+  <h3>8.1 Blender アドオン（Python / bpy）</h3>
+  <pre>
+# フレーム変更に同期して最適化パイプラインを呼ぶ
+def on_frame_change(scene, depsgraph=None):
+    frame = scene.frame_current
+    vol   = lru_cache.get(frame)          # LRU キャッシュ確認
+    if vol is None:
+        vol = read_vol(frame)             # ファイル読み込み
+        lru_cache.put(frame, vol)
+    mask  = dirty_tracker.update(vol)     # ダーティレクト計算
+    update_mesh(vol, mask)                # 変化分のみ更新
+
+bpy.app.handlers.frame_change_post.append(on_frame_change)</pre>
+
+  <h3>8.2 After Effects プラグイン（C++ / AE SDK）</h3>
+  <p>AE の <code>EffectMain</code> はセレクター（コマンド）を受け取って処理を分岐する。QuickDraw のイベントドリブン設計と同じ思想。</p>
+  <pre>
+PF_Err EffectMain(PF_Cmd cmd, ...) {
+    switch (cmd) {
+        case PF_Cmd_PARAMS_SETUP:  // UI パラメーター定義
+        case PF_Cmd_SMART_RENDER:  // タイル描画（スラブの AE 版）
+        case PF_Cmd_SEQUENCE_SETUP:// ダーティレクト状態初期化
+    }
+}</pre>
+
+  <div class="callout callout-tip">
+    AE の <code>PF_Fixed</code> は 16.16 固定小数点。QuickDraw Ch5 と<strong>全く同じ形式</strong>。
+    AE の <code>.r</code> リソースファイルは QuickDraw Ch6 の <code>.R</code> と<strong>全く同じ形式</strong>。
+    1984年のフォーマットが現役で使われている。
+  </div>
+</div>
+
+<!-- ==================== 第9講 ==================== -->
+<div class="lecture" id="l9">
+  <div class="lecture-header">
+    <span class="lecture-num">第9講</span>
+    <h2>アルゴリズムの選び方 — 実務の視点</h2>
+  </div>
+
+  <div class="callout callout-tip">
+    「推測で最適化するな。計測してから最適化せよ」— Donald Knuth<br>
+    QuickDraw 0502 はまず計測コード（TickCount）を書いてから最適化している。
+  </div>
+
+  <h3>最適化の優先順位</h3>
+  <ul class="priority">
+    <li><span class="rank">最大効果</span>描かない（フラスタムカリング・クリッピング）</li>
+    <li><span class="rank">大効果</span>まとめて描かない（LOD・BVH）</li>
+    <li><span class="rank">中効果</span>変化した部分だけ描く（ダーティレクト）</li>
+    <li><span class="rank">中効果</span>計算を安く済ませる（固定小数点・SIMD）</li>
+    <li><span class="rank">小効果</span>メモリ効率を上げる（LRU キャッシュ）</li>
+    <li><span class="rank">最後に</span>並列化（マルチスレッド・GPU）</li>
+  </ul>
+
+  <h3>QuickDraw から現代まで続く原則</h3>
+  <table>
+    <tr><th>1984年 QuickDraw</th><th>2024年 現代</th></tr>
+    <tr><td><code>SetClip</code> で範囲外を棄却</td><td>シザーテスト / フラスタムカリング</td></tr>
+    <tr><td>Region で複雑クリップ</td><td>ステンシルバッファ</td></tr>
+    <tr><td>固定小数点演算</td><td>SIMD / GPU 整数演算</td></tr>
+    <tr><td>スラブ描画</td><td>タイルベースレンダリング（モバイル GPU）</td></tr>
+    <tr><td><code>TickCount</code> で速度計測</td><td>GPU タイマークエリ</td></tr>
+    <tr><td>転送モード（patOr, patXor...）</td><td>ブレンド方程式</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 第10講 ==================== -->
+<div class="lecture" id="l10">
+  <div class="lecture-header">
+    <span class="lecture-num">第10講</span>
+    <h2>まとめと次のステップ</h2>
+  </div>
+
+  <div class="summary">
+    <h3>この講義で学んだこと</h3>
+    <ul>
+      <li>描画の基本は配列にピクセルを書くだけ</li>
+      <li>DDA: 除算1回→加算のみで直線を描く / 固定小数点でさらに高速化</li>
+      <li>スラブ: 水平帯を積み重ねて三角形を塗る（GPUラスタライザと同じ）</li>
+      <li>Zバッファ: 深度テストで奥行きを正確に処理（スキャンライン上で補間）</li>
+      <li>変換行列: 3D変換を4×4行列で統一的に表現（Pitch/Yaw/Roll）</li>
+      <li>クリッピング: 見えない部分は最初から計算しない（最大の最適化）</li>
+      <li>ダーティレクト: 変化した部分だけ更新（Phase 3-3 実測 96.9% スキップ）</li>
+      <li>BVH: 空間を階層化して O(log N) でクエリ</li>
+      <li>GPU: CPU でやっていた処理を数万コアで並列化した結果</li>
+      <li>実務: まず計測し、効果の大きいところから最適化する</li>
+    </ul>
+  </div>
+
+  <h3>演習問題</h3>
+  <div class="callout callout-exercise">
+    <p><strong>基礎1.</strong> 固定小数点 16.16 形式で値 <code>2.75</code> を表す 32bit 整数（16進数）を求めよ。</p>
+    <p><strong>基礎2.</strong> 三角形 (10,0), (0,20), (20,20) をスラブ法で塗るとき、y=10 での xa, xb を計算せよ。</p>
+    <p><strong>応用3.</strong> Phase 1 の <code>fillTriangleZ()</code> に Lambert シェーディングを追加せよ。</p>
+    <p><strong>応用4.</strong> Phase 3-3 の <code>BVHTree</code> に球クエリ（球内のアイテムを返す）を実装せよ。</p>
+  </div>
+  <div class="callout callout-answer">
+    <p><strong>基礎1.</strong> 2.75 = 2 × 65536 + 49152 = <code>0x0002C000</code>（180224）</p>
+    <p><strong>基礎2.</strong> 頂点ソート後: top=(10,0), mid=(0,20), bottom=(20,20)。y=10 は上半分。長辺(10,0)→(20,20): x=10+(20-10)*10/20=15。短辺(10,0)→(0,20): x=10+(0-10)*10/20=5。<strong>xa=5, xb=15</strong></p>
+  </div>
+</div>
+
+<footer>描画アルゴリズムと最適化 — QuickDraw Study Project 講義資料</footer>
+</div>
+</body>
+</html>

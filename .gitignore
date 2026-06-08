@@ -1,0 +1,108 @@
+# ============================================================
+# QuickDraw Study Project - .gitignore
+# ============================================================
+
+# ------------------------------------------------------------
+# CMake build outputs
+# ------------------------------------------------------------
+build/
+Build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+_deps/
+
+# CMake generated Visual Studio files
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+ALL_BUILD.*
+ZERO_CHECK.*
+
+# ------------------------------------------------------------
+# Visual Studio
+# ------------------------------------------------------------
+.vs/
+*.user
+*.suo
+*.aps
+*.ncb
+*.sdf
+*.opensdf
+*.db
+*.opendb
+ipch/
+
+# ------------------------------------------------------------
+# Compiled binaries
+# ------------------------------------------------------------
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.aex
+*.obj
+*.o
+Release/
+Debug/
+x64/
+x86/
+Win32/
+
+# Visual Studio build intermediates
+*.dir/
+*.tlog
+
+# ------------------------------------------------------------
+# Python
+# ------------------------------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+*.coverage
+.mypy_cache/
+
+# ------------------------------------------------------------
+# Large third-party libraries (download separately)
+# ------------------------------------------------------------
+fluid-engine-dev*/
+SDL2*/
+glad*/
+gladsources/
+
+# ------------------------------------------------------------
+# Archives / zip
+# ------------------------------------------------------------
+*.zip
+*.tar.gz
+*.7z
+*.rar
+
+# ------------------------------------------------------------
+# OS generated
+# ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ------------------------------------------------------------
+# Editor
+# ------------------------------------------------------------
+.vscode/settings.json
+*.swp
+*~

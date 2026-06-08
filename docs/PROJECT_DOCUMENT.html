@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>QuickDraw Study Project — 全体ドキュメント</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#58a6ff;--green:#3fb950;--orange:#f0883e;--red:#ff7b72;--purple:#bc8cff;--text:#e6edf3;--muted:#8b949e;--code-bg:#0d1117;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;}
+.container{max-width:1100px;margin:0 auto;padding:48px 24px;}
+header{border-bottom:1px solid var(--border);padding-bottom:32px;margin-bottom:48px;}
+header h1{font-size:2rem;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+header p{color:var(--muted);font-size:.95rem;}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.75rem;font-weight:600;margin:6px 4px 0 0;}
+.bg{background:#0d2b1d;color:var(--green);border:1px solid #1a5c3a;}
+.bb{background:#0d1e3a;color:var(--accent);border:1px solid #1a3a6e;}
+.bo{background:#2b1a0d;color:var(--orange);border:1px solid #6e3a1a;}
+.bp{background:#1e0d2b;color:var(--purple);border:1px solid #4a1a6e;}
+nav{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 24px;margin-bottom:48px;}
+nav h2{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;}
+nav ol{padding-left:20px;columns:2;column-gap:40px;}
+nav li{margin:4px 0;}
+nav a{color:var(--accent);text-decoration:none;font-size:.88rem;}
+nav a:hover{color:var(--green);}
+section{margin-bottom:64px;}
+h2{font-size:1.4rem;color:var(--accent);border-left:3px solid var(--accent);padding-left:12px;margin-bottom:24px;}
+h3{font-size:1.05rem;color:var(--green);margin:28px 0 10px;}
+h4{font-size:.9rem;color:var(--orange);margin:18px 0 6px;font-weight:600;}
+p{color:#c9d1d9;margin-bottom:12px;font-size:.93rem;}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:16px 20px;overflow-x:auto;font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.8rem;line-height:1.6;margin:12px 0 20px;color:#c9d1d9;}
+code{background:#1e2230;border-radius:3px;padding:1px 6px;font-size:.85em;color:var(--green);font-family:'Cascadia Code',monospace;}
+table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:.86rem;}
+th{background:var(--surface);color:var(--muted);font-weight:600;text-align:left;padding:9px 14px;border:1px solid var(--border);text-transform:uppercase;font-size:.75rem;letter-spacing:.05em;}
+td{padding:8px 14px;border:1px solid var(--border);color:#c9d1d9;}
+tr:hover td{background:#151d2a;}
+td code{font-size:.78em;}
+.phase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 24px;}
+.phase-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.phase-card .num{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+.phase-card .title{color:var(--accent);font-weight:600;margin-bottom:6px;}
+.phase-card .desc{color:var(--muted);font-size:.82rem;}
+.flow{display:flex;flex-direction:column;gap:0;margin:16px 0 24px;}
+.flow-box{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 16px;font-size:.84rem;}
+.flow-box .label{color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;}
+.flow-box .name{color:var(--accent);font-weight:600;}
+.flow-arrow{text-align:center;color:var(--border);font-size:1.2rem;padding:3px 0;}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px;text-align:center;}
+.stat .val{font-size:1.4rem;font-weight:700;color:var(--green);}
+.stat .lbl{font-size:.75rem;color:var(--muted);margin-top:4px;}
+footer{border-top:1px solid var(--border);padding-top:24px;margin-top:48px;color:var(--muted);font-size:.8rem;text-align:center;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>QuickDraw Study Project</h1>
+  <p>Apple QuickDraw (1984) を起点に現代の描画パイプライン・流体エフェクト最適化を実装した全記録</p>
+  <div>
+    <span class="badge bb">C++17</span>
+    <span class="badge bg">Python 3.x</span>
+    <span class="badge bo">GLSL / HLSL</span>
+    <span class="badge bp">Blender / Houdini / AE</span>
+    <span class="badge bg">OpenVDB / Alembic</span>
+  </div>
+</header>
+
+<nav>
+  <h2>目次</h2>
+  <ol>
+    <li><a href="#overview">プロジェクト概要</a></li>
+    <li><a href="#roadmap">学習ロードマップ</a></li>
+    <li><a href="#phase1">Phase 1: ミニ S/W レンダラー</a></li>
+    <li><a href="#phase2">Phase 2: GPU 化</a></li>
+    <li><a href="#phase3-1">Phase 3-1: Blender アドオン</a></li>
+    <li><a href="#phase3-2">Phase 3-2: Houdini HDA</a></li>
+    <li><a href="#phase3-3">Phase 3-3: 汎用最適化ライブラリ</a></li>
+    <li><a href="#phase4">Phase 4: After Effects プラグイン</a></li>
+    <li><a href="#mapping">全体 QuickDraw 対応表</a></li>
+  </ol>
+</nav>
+
+<section id="overview">
+  <h2>1. プロジェクト概要</h2>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>起点教材</td><td>The Art of QuickDraw (Apple, 1984) / 日本語 PDF</td></tr>
+    <tr><td>目的</td><td>描画パイプライン基礎理解 → 流体エフェクト・映像描画最適化</td></tr>
+    <tr><td>言語</td><td>C++17 / Python 3.x / GLSL / HLSL</td></tr>
+    <tr><td>対象 DCC</td><td>After Effects / Houdini / Blender / Unreal Engine</td></tr>
+  </table>
+  <div class="stat-row">
+    <div class="stat"><div class="val">6</div><div class="lbl">プロジェクト</div></div>
+    <div class="stat"><div class="val">96.9%</div><div class="lbl">最大スキップ率</div></div>
+    <div class="stat"><div class="val">0.23ms</div><div class="lbl">フルパイプライン</div></div>
+    <div class="stat"><div class="val">1/64</div><div class="lbl">LOD2 処理量</div></div>
+  </div>
+</section>
+
+<section id="roadmap">
+  <h2>2. 学習ロードマップ</h2>
+  <div class="flow">
+    <div class="flow-box"><div class="label">起点</div><div class="name">QuickDraw Pascal サンプル (Ch2-6)</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box"><div class="label">Phase 1</div><div class="name">ミニ S/W レンダラー — DDA / スラブ / Z バッファ / 3D 変換 [C++ / SDL2]</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box"><div class="label">Phase 2</div><div class="name">GPU 化 — 同アルゴリズムをシェーダーに移植・速度比較 [OpenGL / GLSL + HLSL]</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box"><div class="label">Phase 3</div><div class="name">流体最適化 — Blender アドオン / Houdini HDA / 汎用ライブラリ [Python]</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box"><div class="label">Phase 4</div><div class="name">After Effects プラグイン — タイル描画 + ダーティレクト + 転送モード [C++ / AE SDK]</div></div>
+  </div>
+</section>
+
+<section id="phase1">
+  <h2>3. Phase 1: ミニソフトウェアレンダラー</h2>
+  <h3>実装アルゴリズム</h3>
+  <table>
+    <tr><th>アルゴリズム</th><th>QuickDraw 参照</th><th>実装関数</th></tr>
+    <tr><td>float DDA ライン</td><td><code>0501DDALine.p</code></td><td><code>drawLineDDA()</code></td></tr>
+    <tr><td>固定小数点 DDA</td><td><code>0503DDAFixedLineSpeed.p</code></td><td><code>drawLineFixed()</code></td></tr>
+    <tr><td>スラブ三角形</td><td><code>0507FixedRectSlabDrawLine.p</code></td><td><code>fillTriangleZ()</code></td></tr>
+    <tr><td>Z バッファ</td><td>現代の拡張</td><td><code>testAndSetDepth()</code></td></tr>
+    <tr><td>クリッピング</td><td><code>0310RegionClipping.p</code></td><td><code>setClipRect()</code></td></tr>
+    <tr><td>3D 回転</td><td>Graf3D Pitch/Yaw/Roll</td><td><code>Mat4::rotX/Y/Z()</code></td></tr>
+    <tr><td>透視投影</td><td>Graf3D ViewAngle/LookAt</td><td><code>perspectiveProject()</code></td></tr>
+  </table>
+  <h3>固定小数点 (16.16) の仕組み</h3>
+  <pre>
+32bit 整数 = 上位 16bit (整数部) + 下位 16bit (小数部)
+
+3.5 → 3 * 65536 + 32768 = 229376 = 0x00038000
+
+float DDA:   fy += slope;       round(fy)   ← float 加算 + round()
+固定小数点:  fy += slope_fixed; fy >> 16    ← 整数加算 + シフト (高速)</pre>
+  <h3>ファイル構成</h3>
+  <pre>
+mini-renderer/
+├── CMakeLists.txt        SDL2 FetchContent 自動取得
+└── src/
+    ├── math3d.h          Vec3 / Vec2 / ProjVert / Mat4 / perspectiveProject
+    ├── framebuffer.h/cpp 色バッファ + 深度バッファ
+    ├── renderer.h/cpp    DDA / スラブ / Z バッファ / クリッピング
+    └── main.cpp          回転キューブ メインループ</pre>
+</section>
+
+<section id="phase2">
+  <h2>4. Phase 2: GPU 化</h2>
+  <h3>CPU → GPU 対応</h3>
+  <table>
+    <tr><th>Phase 1 (CPU)</th><th>Phase 2 (GPU)</th><th>自動化</th></tr>
+    <tr><td><code>rot.transform(v)</code></td><td>Vertex Shader</td><td>—</td></tr>
+    <tr><td><code>perspectiveProject()</code></td><td>Vertex Shader</td><td>—</td></tr>
+    <tr><td><code>fillTriangleZ()</code> slab</td><td>GPU Rasterizer</td><td>完全自動</td></tr>
+    <tr><td><code>testAndSetDepth()</code></td><td>GPU Depth Buffer</td><td>完全自動</td></tr>
+    <tr><td><code>putPixel()</code></td><td>Fragment Shader</td><td>—</td></tr>
+  </table>
+  <h3>GLSL / HLSL 主な相違点</h3>
+  <table>
+    <tr><th>項目</th><th>GLSL</th><th>HLSL</th></tr>
+    <tr><td>Uniform</td><td><code>uniform mat4</code></td><td><code>cbuffer : register(b0)</code></td></tr>
+    <tr><td>行列乗算</td><td><code>*</code> 演算子</td><td><code>mul()</code> 関数</td></tr>
+    <tr><td>NDC Z 範囲</td><td>[-1, 1]</td><td>[0, 1]</td></tr>
+    <tr><td>頂点出力</td><td><code>gl_Position</code></td><td><code>SV_Position</code></td></tr>
+  </table>
+</section>
+
+<section id="phase3-1">
+  <h2>5. Phase 3-1: Blender アドオン</h2>
+  <h3>3 層最適化構造</h3>
+  <div class="flow">
+    <div class="flow-box"><div class="label">Layer 1</div><div class="name">LRUFrameCache — 読み込み済みフレームを再利用（I/O 削減）</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box"><div class="label">Layer 2</div><div class="name">BVHCuller — 視野外ブロックをスキップ（演算削減）</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box"><div class="label">Layer 3</div><div class="name">DirtyTracker — 変化ボクセルのみ更新（更新量削減）</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-box"><div class="label">出力</div><div class="name">Blender Mesh（点群）更新</div></div>
+  </div>
+  <h3>最適化効果</h3>
+  <table>
+    <tr><th>最適化</th><th>効果</th></tr>
+    <tr><td>ダーティレクト（静的領域）</td><td>最大 95% スキップ</td></tr>
+    <tr><td>LOD1 ダウンサンプル</td><td>処理量 1/8</td></tr>
+    <tr><td>LOD2 ダウンサンプル</td><td>処理量 1/64</td></tr>
+    <tr><td>LRU キャッシュ</td><td>同フレーム再ロードゼロ</td></tr>
+  </table>
+</section>
+
+<section id="phase3-3">
+  <h2>7. Phase 3-3: 汎用最適化ライブラリ</h2>
+  <h3>テスト実測値</h3>
+  <table>
+    <tr><th>テスト</th><th>結果</th></tr>
+    <tr><td>BVH 125 アイテム構築</td><td>Depth 7 / 0.18ms</td></tr>
+    <tr><td>ダーティレクト 2フレーム目</td><td><strong>96.9% スキップ</strong></td></tr>
+    <tr><td>LOD1 処理量</td><td><strong>1/8</strong></td></tr>
+    <tr><td>LOD2 処理量</td><td><strong>1/64</strong></td></tr>
+    <tr><td>フルパイプライン</td><td><strong>0.23ms/frame</strong></td></tr>
+  </table>
+  <h3>対応フォーマット</h3>
+  <table>
+    <tr><th>フォーマット</th><th>対応</th><th>備考</th></tr>
+    <tr><td>Jet <code>.vol</code></td><td>✅ ネイティブ</td><td>依存ライブラリなし</td></tr>
+    <tr><td>OpenVDB <code>.vdb</code></td><td>✅</td><td>pyopenvdb が必要</td></tr>
+    <tr><td>Alembic <code>.abc</code></td><td>✅</td><td>alembic バインディングが必要</td></tr>
+  </table>
+</section>
+
+<section id="phase4">
+  <h2>8. Phase 4: After Effects プラグイン</h2>
+  <h3>AE SDK と QuickDraw の対応</h3>
+  <table>
+    <tr><th>AE の仕組み</th><th>QuickDraw 対応</th></tr>
+    <tr><td><code>PF_EffectWorld</code></td><td>GrafPort portBits（ピクセルバッファ）</td></tr>
+    <tr><td><code>PF_Fixed</code> (16.16)</td><td>Ch5 固定小数点 <code>0503DDAFixedLineSpeed.p</code> と同形式</td></tr>
+    <tr><td><code>PF_Tile</code></td><td>Ch5 スラブ描画 <code>0507FixedRectSlabDrawLine.p</code></td></tr>
+    <tr><td>DirtyRect</td><td>Ch3 RegionClipping <code>0310RegionClipping.p</code></td></tr>
+    <tr><td>Transfer Mode</td><td>Ch3 TransferModes <code>0303TransferModes.p</code></td></tr>
+    <tr><td><code>.r</code> リソースファイル</td><td>Ch6 <code>0600MacTech3D.R</code>（同一形式）</td></tr>
+  </table>
+  <h3>転送モード対応</h3>
+  <table>
+    <tr><th>AE モード</th><th>QuickDraw</th><th>効果</th></tr>
+    <tr><td>Normal</td><td><code>patCopy</code></td><td>そのまま上書き</td></tr>
+    <tr><td>Add</td><td><code>patOr</code></td><td>加算（明るくなる）</td></tr>
+    <tr><td>Screen</td><td><code>notPatBic</code></td><td>さらに明るく</td></tr>
+    <tr><td>Multiply</td><td><code>patBic</code></td><td>暗くなる</td></tr>
+  </table>
+</section>
+
+<section id="mapping">
+  <h2>9. QuickDraw 全対応表</h2>
+  <table>
+    <tr><th>QuickDraw</th><th>ファイル</th><th>Ph1</th><th>Ph2</th><th>Ph3</th><th>Ph4</th></tr>
+    <tr><td>DDA ライン</td><td><code>0501</code></td><td><code>drawLineDDA</code></td><td>—</td><td>—</td><td>—</td></tr>
+    <tr><td>固定小数点 DDA</td><td><code>0503</code></td><td><code>drawLineFixed</code></td><td>VS step</td><td>—</td><td>raymarch</td></tr>
+    <tr><td>スラブ三角形</td><td><code>0507</code></td><td><code>fillTriangleZ</code></td><td>GPU rast.</td><td>—</td><td><code>renderTile</code></td></tr>
+    <tr><td>転送モード</td><td><code>0303</code></td><td>—</td><td>blend eq</td><td>—</td><td><code>applyTransfer</code></td></tr>
+    <tr><td>クリッピング</td><td><code>0310</code></td><td><code>setClipRect</code></td><td>scissor</td><td>DirtyTracker</td><td>DirtyRect</td></tr>
+    <tr><td>矩形演算</td><td><code>0403-11</code></td><td>AABB class</td><td>—</td><td>AABB class</td><td>—</td></tr>
+    <tr><td>Pitch/Yaw/Roll</td><td>Graf3D</td><td><code>Mat4::rot*</code></td><td>uniform mat4</td><td>—</td><td>—</td></tr>
+    <tr><td>透視投影</td><td>Graf3D</td><td><code>perspProj</code></td><td>vert shader</td><td>—</td><td>raymarch</td></tr>
+    <tr><td>PixelBuffer</td><td>GrafPort</td><td>Framebuffer</td><td>GL texture</td><td>bpy.mesh</td><td>PF_EffectWorld</td></tr>
+    <tr><td>リソース定義</td><td><code>0600.R</code></td><td>—</td><td>—</td><td>—</td><td><code>.r</code> file</td></tr>
+  </table>
+</section>
+
+<footer>QuickDraw Study Project — Based on The Art of QuickDraw (Apple, 1984)</footer>
+</div>
+</body>
+</html>
