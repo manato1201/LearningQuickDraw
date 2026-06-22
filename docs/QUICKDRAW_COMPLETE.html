@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickDraw 完全講義 — Full Application from Scratch</title>
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;
+  --border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --blue:#58a6ff;--green:#3fb950;--yellow:#d29922;--orange:#f0883e;
+  --red:#f85149;--purple:#bc8cff;--pink:#ff7b72;--cyan:#39d353;
+  --code-bg:#1f2428;--accent:#238636;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.7;}
+a{color:var(--blue);text-decoration:none;}a:hover{text-decoration:underline;}
+
+/* ── NAV ── */
+#toc{position:fixed;top:0;left:0;width:260px;height:100vh;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:20px 0;z-index:100;}
+#toc h2{padding:0 16px 12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);}
+#toc a{display:block;padding:4px 16px;font-size:13px;color:var(--text2);border-left:2px solid transparent;}
+#toc a:hover{color:var(--text);background:var(--bg3);border-left-color:var(--blue);text-decoration:none;}
+#toc a.l2{padding-left:28px;font-size:12px;}
+#toc a.l3{padding-left:40px;font-size:11px;color:var(--text3);}
+#toc .sec{padding:8px 16px 4px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-top:8px;}
+
+/* ── MAIN ── */
+main{margin-left:260px;padding:48px 64px;max-width:960px;}
+@media(max-width:900px){#toc{display:none;}main{margin-left:0;padding:24px 20px;}}
+
+/* ── HEADINGS ── */
+h1{font-size:2.4em;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:24px;}
+h2{font-size:1.6em;font-weight:600;color:var(--text);margin:56px 0 16px;padding-top:16px;border-top:1px solid var(--border);}
+h3{font-size:1.2em;font-weight:600;color:var(--blue);margin:32px 0 12px;}
+h4{font-size:1em;font-weight:600;color:var(--orange);margin:20px 0 8px;}
+
+/* ── TEXT ── */
+p{margin:12px 0;color:var(--text2);}
+p strong{color:var(--text);}
+ul,ol{margin:12px 0 12px 24px;}
+li{margin:4px 0;color:var(--text2);}
+li strong{color:var(--text);}
+
+/* ── CODE ── */
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:20px;overflow-x:auto;margin:16px 0;position:relative;}
+pre code{font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:13px;line-height:1.6;color:#e6edf3;}
+code{font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:.88em;background:var(--code-bg);padding:2px 6px;border-radius:4px;color:#ff7b72;}
+.lang-label{position:absolute;top:8px;right:12px;font-size:10px;color:var(--text3);font-family:monospace;letter-spacing:.05em;}
+
+/* ── CALLOUTS ── */
+.callout{border-radius:6px;padding:16px 20px;margin:20px 0;border-left:4px solid;}
+.callout.info{background:#1c2a3a;border-color:var(--blue);}
+.callout.tip {background:#1a2e1a;border-color:var(--green);}
+.callout.warn{background:#2d2008;border-color:var(--yellow);}
+.callout.algo{background:#1e1a2e;border-color:var(--purple);}
+.callout-title{font-weight:700;font-size:.85em;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+.callout.info .callout-title{color:var(--blue);}
+.callout.tip  .callout-title{color:var(--green);}
+.callout.warn .callout-title{color:var(--yellow);}
+.callout.algo .callout-title{color:var(--purple);}
+.callout p{margin:4px 0;}
+
+/* ── TABLES ── */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}
+th{background:var(--bg3);color:var(--text);padding:8px 12px;text-align:left;border:1px solid var(--border);font-size:12px;letter-spacing:.03em;}
+td{padding:8px 12px;border:1px solid var(--border);color:var(--text2);}
+tr:hover td{background:var(--bg2);}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;margin:0 4px;}
+.badge.phase1{background:#1c3a2a;color:#3fb950;}
+.badge.phase2{background:#1c2a3a;color:#58a6ff;}
+.badge.phase3{background:#2a1c3a;color:#bc8cff;}
+.badge.phase4{background:#3a1c1c;color:#f85149;}
+.badge.qs{background:#2a2000;color:#d29922;}
+
+/* ── LECTURE NUM ── */
+.lecture-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+.lecture-num{font-size:3em;font-weight:900;color:var(--bg4);line-height:1;}
+.lecture-meta{flex:1;}
+.lecture-meta h2{margin:0;padding:0;border:0;font-size:1.4em;}
+.lecture-meta .sub{color:var(--text3);font-size:13px;margin-top:4px;}
+
+/* ── ARCH DIAGRAM ── */
+.arch-box{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;margin:16px 0;font-family:monospace;font-size:13px;line-height:1.8;color:var(--text2);}
+.arch-box .highlight{color:var(--blue);}
+
+/* ── FOLDER TREE ── */
+.tree{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:16px 20px;font-family:monospace;font-size:13px;line-height:1.8;margin:16px 0;}
+.tree .dir{color:var(--blue);}
+.tree .file{color:var(--text2);}
+.tree .comment{color:var(--text3);}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(135deg,#0d1117 0%,#161b22 50%,#1c2a3a 100%);border:1px solid var(--border);border-radius:12px;padding:48px;margin-bottom:48px;text-align:center;}
+.hero h1{border:0;font-size:2.8em;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero .sub{color:var(--text2);font-size:1.1em;margin-top:12px;}
+.hero .tags{margin-top:20px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}
+
+/* ── PHASE CARD ── */
+.phase-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;}
+@media(max-width:700px){.phase-grid{grid-template-columns:1fr;}}
+.phase-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;}
+.phase-card h4{margin:0 0 8px;font-size:14px;}
+.phase-card p{font-size:13px;margin:0;}
+
+/* ── STEP ── */
+.step{display:flex;gap:16px;margin:16px 0;}
+.step-num{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--blue);color:#000;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.step-body{flex:1;padding-top:3px;}
+
+/* ── MAPPING ── */
+.map-row{display:flex;align-items:center;gap:0;margin:6px 0;font-size:13px;}
+.map-qd{background:#2a2000;border:1px solid #d29922;border-radius:4px;padding:3px 10px;color:#d29922;font-family:monospace;min-width:180px;}
+.map-arrow{color:var(--text3);padding:0 12px;font-size:18px;}
+.map-mod{background:#1c2a3a;border:1px solid var(--blue);border-radius:4px;padding:3px 10px;color:var(--blue);font-family:monospace;}
+
+hr{border:0;border-top:1px solid var(--border);margin:40px 0;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ TOC ═══════════ -->
+<nav id="toc">
+<h2>QuickDraw 完全講義</h2>
+
+<div class="sec">はじめに</div>
+<a href="#overview">プロジェクト概要</a>
+<a href="#arch">全体アーキテクチャ</a>
+<a href="#qd-map">QuickDraw 対応表</a>
+
+<div class="sec">Chapter 基礎編</div>
+<a href="#ch-pixel">第1講 ピクセルと座標系</a>
+<a class="l2" href="#ch-pixel-fb">フレームバッファ</a>
+<a class="l2" href="#ch-pixel-color">色の表現</a>
+<a href="#ch-line">第2講 ライン描画 DDA</a>
+<a class="l2" href="#ch-dda-float">浮動小数点 DDA</a>
+<a class="l2" href="#ch-dda-fixed">固定小数点 DDA</a>
+<a href="#ch-tri">第3講 三角形ラスタライズ</a>
+<a class="l2" href="#ch-slab">スラブ法</a>
+<a class="l2" href="#ch-zbuf">Z バッファ</a>
+<a href="#ch-transfer">第4講 転送モード</a>
+<a href="#ch-clip">第5講 クリッピング</a>
+<a href="#ch-3d">第6講 3D 変換・透視投影</a>
+<a class="l2" href="#ch-matrix">回転行列</a>
+<a class="l2" href="#ch-proj">透視投影</a>
+
+<div class="sec">Phase 1 — CPU レンダラー</div>
+<a href="#p1-arch">アーキテクチャ</a>
+<a href="#p1-folder">フォルダ構成</a>
+<a href="#p1-code">完全実装コード</a>
+<a class="l2" href="#p1-math3d">math3d.h</a>
+<a class="l2" href="#p1-fb">framebuffer</a>
+<a class="l2" href="#p1-renderer">renderer</a>
+<a class="l2" href="#p1-main">main.cpp</a>
+
+<div class="sec">Phase 2 — GPU レンダラー</div>
+<a href="#p2-arch">アーキテクチャ</a>
+<a href="#p2-folder">フォルダ構成</a>
+<a href="#p2-glsl">GLSL シェーダー</a>
+<a href="#p2-hlsl">HLSL 参照</a>
+<a href="#p2-gl">OpenGL 実装</a>
+
+<div class="sec">Phase 3 — 流体最適化</div>
+<a href="#p3-vol">Vol フォーマット</a>
+<a href="#p3-bvh">BVH (SAH)</a>
+<a href="#p3-dirty">ダーティレクト</a>
+<a href="#p3-lod">LOD</a>
+<a href="#p3-lru">LRU キャッシュ</a>
+<a href="#p3-blender">Blender アドオン</a>
+<a href="#p3-houdini">Houdini HDA</a>
+<a href="#p3-lib">汎用ライブラリ</a>
+
+<div class="sec">Phase 4 — AE プラグイン</div>
+<a href="#p4-arch">アーキテクチャ</a>
+<a href="#p4-tile">タイル描画</a>
+<a href="#p4-code">実装コード</a>
+
+<div class="sec">まとめ</div>
+<a href="#bench">ベンチマーク</a>
+<a href="#roadmap">次のステップ</a>
+</nav>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<main>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>QuickDraw 完全講義</h1>
+  <p class="sub">Apple QuickDraw (1984) から学ぶ描画エンジン — Full Application from Scratch</p>
+  <div class="tags">
+    <span class="badge phase1">Phase 1 CPU</span>
+    <span class="badge phase2">Phase 2 GPU</span>
+    <span class="badge phase3">Phase 3 流体最適化</span>
+    <span class="badge phase4">Phase 4 AE プラグイン</span>
+    <span class="badge qs">QuickDraw 1984</span>
+  </div>
+</div>
+
+<!-- ═══════════ OVERVIEW ═══════════ -->
+<section id="overview">
+<h2>プロジェクト概要</h2>
+
+<p>本講義は、Apple が 1984 年に開発した描画ライブラリ <strong>QuickDraw</strong> のアルゴリズムを出発点に、現代の描画パイプライン・GPU・流体エフェクト最適化ツールまでを <strong>ゼロから実装</strong> する講義です。</p>
+
+<div class="callout info">
+  <div class="callout-title">対象読者</div>
+  <p>アプリ・プラグインを一から作り始める学生。C++・Python の基礎知識があれば OK。GPU や DCC ツール（Blender・Houdini）の経験は不要です。</p>
+</div>
+
+<h3>なぜ QuickDraw を学ぶのか？</h3>
+<p>QuickDraw は描画システムの最小構成を示しています。現代の GPU パイプラインが自動でやってくれることを、QuickDraw では自分で実装します。</p>
+
+<div class="map-row"><span class="map-qd">DDA ライン 0501</span><span class="map-arrow">→</span><span class="map-mod">GPU ラスタライザ</span></div>
+<div class="map-row"><span class="map-qd">固定小数点 0503</span><span class="map-arrow">→</span><span class="map-mod">SIMD 整数演算</span></div>
+<div class="map-row"><span class="map-qd">スラブ描画 0507</span><span class="map-arrow">→</span><span class="map-mod">タイルレンダリング</span></div>
+<div class="map-row"><span class="map-qd">転送モード 0303</span><span class="map-arrow">→</span><span class="map-mod">ブレンドモード</span></div>
+<div class="map-row"><span class="map-qd">RegionClip 0310</span><span class="map-arrow">→</span><span class="map-mod">フラスタムカリング</span></div>
+<div class="map-row"><span class="map-qd">Graf3D Pitch/Yaw/Roll</span><span class="map-arrow">→</span><span class="map-mod">Vertex Shader</span></div>
+
+<h3>制作物一覧</h3>
+<div class="phase-grid">
+  <div class="phase-card"><h4><span class="badge phase1">Phase 1</span> CPU ソフトウェアレンダラー</h4><p>C++/SDL2。DDA・スラブ・Zバッファ・透視投影をゼロ実装。</p></div>
+  <div class="phase-card"><h4><span class="badge phase2">Phase 2</span> GPU レンダラー</h4><p>OpenGL 3.3 + GLSL。同じキューブを GPU で描画し速度比較。</p></div>
+  <div class="phase-card"><h4><span class="badge phase3">Phase 3-1</span> Blender アドオン</h4><p>Python/bpy。流体キャッシュを BVH + ダーティレクトで高速更新。</p></div>
+  <div class="phase-card"><h4><span class="badge phase3">Phase 3-2</span> Houdini HDA</h4><p>Python SOP。.vol → Points/Volume プリミティブ変換。</p></div>
+  <div class="phase-card"><h4><span class="badge phase3">Phase 3-3</span> 汎用最適化ライブラリ</h4><p>Pure Python。BVH/LOD/LRU をどのツールからも使える API に。</p></div>
+  <div class="phase-card"><h4><span class="badge phase4">Phase 4</span> After Effects プラグイン</h4><p>C++/AE SDK。タイル描画・ダーティレクト・転送モード最適化。</p></div>
+</div>
+</section>
+
+<!-- ═══════════ ARCHITECTURE ═══════════ -->
+<section id="arch">
+<h2>全体アーキテクチャ</h2>
+
+<div class="arch-box">
+<span class="highlight">QuickDraw アルゴリズム知識ベース</span>
+         │
+         │  ピクセルレベルの描画理解
+         ▼
+<span class="highlight">[Phase 1]</span> CPU ソフトウェアレンダラー    mini-renderer/
+         │                       │
+         │ GPU 化                │ 流体最適化
+         ▼                       ▼
+<span class="highlight">[Phase 2]</span> GPU シェーダー      <span class="highlight">[Phase 3]</span> 最適化エンジン
+  GLSL + HLSL                   ├── Blender アドオン
+  OpenGL + DirectX ref          ├── Houdini HDA
+                                └── 汎用ライブラリ
+                                     .vol / VDB / Alembic
+                                          │
+                                          ▼
+                                <span class="highlight">[Phase 4]</span> AE プラグイン
+                                  タイル + ダーティレクト
+                                  + 転送モード最適化
+</div>
+
+<h3>技術スタック</h3>
+<table>
+<tr><th>レイヤー</th><th>技術</th><th>理由</th></tr>
+<tr><td>CPU レンダリング</td><td>C++17 / SDL2</td><td>QuickDraw の Pascal を C++ に直訳できる</td></tr>
+<tr><td>GPU レンダリング</td><td>OpenGL 3.3 / GLSL</td><td>クロスプラットフォーム、学習コストが低い</td></tr>
+<tr><td>シェーダー参照</td><td>HLSL</td><td>DirectX 向け、プロ現場で最も使われる</td></tr>
+<tr><td>DCC ツール統合</td><td>Python 3.x / numpy</td><td>Blender/Houdini の Python API に直結</td></tr>
+<tr><td>AE プラグイン</td><td>C++ / AE SDK</td><td>QuickDraw の C 実装と構造が一致</td></tr>
+</table>
+</section>
+
+<!-- ═══════════ QD MAP ═══════════ -->
+<section id="qd-map">
+<h2>QuickDraw 対応表（全 Phase）</h2>
+<table>
+<tr><th>QuickDraw</th><th>ファイル</th><th>Phase 1</th><th>Phase 2</th><th>Phase 3</th><th>Phase 4</th></tr>
+<tr><td>DDA ライン</td><td>0501</td><td>drawLineDDA()</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>固定小数点 DDA</td><td>0503</td><td>drawLineFixed()</td><td>raymarch step</td><td>—</td><td>raymarch step</td></tr>
+<tr><td>速度比較</td><td>0502</td><td>benchmark</td><td>GPU timer</td><td>—</td><td>—</td></tr>
+<tr><td>スラブ三角形</td><td>0507</td><td>fillTriangle()</td><td>GPU rasterizer</td><td>—</td><td>renderTile()</td></tr>
+<tr><td>転送モード</td><td>0303</td><td>—</td><td>blend eq</td><td>—</td><td>applyTransfer()</td></tr>
+<tr><td>リージョンクリップ</td><td>0310</td><td>setClipRect()</td><td>scissor</td><td>DirtyTracker</td><td>DirtyRect</td></tr>
+<tr><td>矩形演算</td><td>0403-0411</td><td>AABB ops</td><td>—</td><td>AABB class</td><td>—</td></tr>
+<tr><td>Pitch/Yaw/Roll</td><td>Graf3D</td><td>Mat4::rotX/Y/Z</td><td>uniform mat4</td><td>—</td><td>—</td></tr>
+<tr><td>透視投影</td><td>Graf3D</td><td>perspectiveProject()</td><td>vertex shader</td><td>—</td><td>raymarch</td></tr>
+<tr><td>PixelBuffer</td><td>GrafPort</td><td>Framebuffer</td><td>SDL texture</td><td>bpy.mesh</td><td>PF_EffectWorld</td></tr>
+</table>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════
+     基礎編
+═══════════════════════════════════════ -->
+
+<!-- 第1講 -->
+<section id="ch-pixel">
+<div class="lecture-header">
+  <div class="lecture-num">01</div>
+  <div class="lecture-meta">
+    <h2>ピクセルと座標系 — フレームバッファの仕組み</h2>
+    <div class="sub">QuickDraw Chapter 2 対応 | GrafPort / portBits</div>
+  </div>
+</div>
+
+<p>描画の最も基本的な操作は「特定の座標にピクセルを置く」ことです。QuickDraw は <code>GrafPort</code> という構造体でこれを管理していました。現代では <strong>フレームバッファ</strong> と呼ばれる uint32_t の配列がその役割を担います。</p>
+
+<div id="ch-pixel-fb">
+<h3>フレームバッファの構造</h3>
+
+<div class="callout algo">
+  <div class="callout-title">アルゴリズム — putPixel</div>
+  <p>座標 (x, y) に色を書き込む：<code>buffer[y * width + x] = color</code></p>
+  <p>これだけです。全ての描画操作はこの 1 行の組み合わせです。</p>
+</div>
+
+<pre><code class="language-cpp">// QuickDraw の GrafPort.portBits に相当
+class Framebuffer {
+    int m_width, m_height;
+    std::vector&lt;uint32_t&gt; m_color;   // ARGB
+    std::vector&lt;float&gt;    m_depth;   // Z バッファ
+
+public:
+    Framebuffer(int w, int h)
+        : m_width(w), m_height(h),
+          m_color(w * h, 0xFF000000),
+          m_depth(w * h, 1e30f) {}
+
+    void setPixel(int x, int y, uint32_t color) {
+        if (x &lt; 0 || x &gt;= m_width || y &lt; 0 || y &gt;= m_height) return;
+        m_color[y * m_width + x] = color;
+    }
+
+    uint32_t getPixel(int x, int y) const {
+        return m_color[y * m_width + x];
+    }
+
+    void clear(uint32_t color = 0xFF000000) {
+        std::fill(m_color.begin(), m_color.end(), color);
+    }
+
+    void clearDepth() {
+        std::fill(m_depth.begin(), m_depth.end(), 1e30f);
+    }
+
+    // Z バッファテスト: depth が現在より小さければ書き込み許可
+    bool testAndSetDepth(int x, int y, float depth) {
+        float&amp; slot = m_depth[y * m_width + x];
+        if (depth &lt; slot) { slot = depth; return true; }
+        return false;
+    }
+
+    const uint32_t* data() const { return m_color.data(); }
+    int width()  const { return m_width; }
+    int height() const { return m_height; }
+};</code></pre>
+<div class="lang-label">C++</div>
+</pre>
+</div>
+
+<div id="ch-pixel-color">
+<h3>色の表現</h3>
+<p>QuickDraw は RGBColor 構造体を使っていました。現代では 32bit ARGB パックド整数が標準です。</p>
+
+<pre><code class="language-cpp">// ARGB パッキング
+inline uint32_t makeColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) {
+    return (uint32_t(a) &lt;&lt; 24) | (uint32_t(r) &lt;&lt; 16)
+         | (uint32_t(g) &lt;&lt; 8)  |  uint32_t(b);
+}
+
+constexpr uint32_t RED   = 0xFFFF0000;
+constexpr uint32_t GREEN = 0xFF00FF00;
+constexpr uint32_t BLUE  = 0xFF0000FF;
+constexpr uint32_t WHITE = 0xFFFFFFFF;</code></pre>
+</div>
+
+<div class="callout tip">
+  <div class="callout-title">学習ポイント</div>
+  <p>SDL2 の <code>SDL_UpdateTexture</code> でフレームバッファの配列をそのままウィンドウに表示できます。GPU への転送は SDL2 が内部で行います。</p>
+</div>
+</section>
+
+<!-- 第2講 DDA -->
+<section id="ch-line">
+<div class="lecture-header">
+  <div class="lecture-num">02</div>
+  <div class="lecture-meta">
+    <h2>ライン描画と DDA アルゴリズム</h2>
+    <div class="sub">QuickDraw 0501DDALine.p / 0503DDAFixedLineSpeed.p</div>
+  </div>
+</div>
+
+<p>直線を画面に描くとき、数学的な直線 <code>y = mx + b</code> を整数ピクセルグリッドに変換する問題が発生します。<strong>DDA (Digital Differential Analyzer)</strong> はその最も基本的な解法です。</p>
+
+<div id="ch-dda-float">
+<h3>浮動小数点 DDA (0501DDALine.p の直訳)</h3>
+
+<div class="callout algo">
+  <div class="callout-title">アルゴリズム — Float DDA</div>
+  <p>1. 傾き <code>slope = dy / dx</code> を計算（除算は 1 回のみ）</p>
+  <p>2. x を 1 ずつ進めながら <code>fy += slope</code> で y を更新</p>
+  <p>3. <code>round(fy)</code> でピクセル座標に変換</p>
+</div>
+
+<pre><code class="language-cpp">// QuickDraw 0501DDALine.p の C++ 直訳
+void drawLineDDA(int x0, int y0, int x1, int y1, uint32_t color) {
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+
+    // 長辺が主軸
+    if (std::abs(dx) &gt;= std::abs(dy)) {
+        if (x0 &gt; x1) { std::swap(x0,x1); std::swap(y0,y1); dx=-dx; dy=-dy; }
+        float slope = (float)dy / (float)dx;
+        float fy    = (float)y0;
+        for (int x = x0; x &lt;= x1; x++) {
+            putPixel(x, (int)std::round(fy), color);
+            fy += slope;
+        }
+    } else {
+        if (y0 &gt; y1) { std::swap(x0,x1); std::swap(y0,y1); dx=-dx; dy=-dy; }
+        float slope = (float)dx / (float)dy;
+        float fx    = (float)x0;
+        for (int y = y0; y &lt;= y1; y++) {
+            putPixel((int)std::round(fx), y, color);
+            fx += slope;
+        }
+    }
+}</code></pre>
+</div>
+
+<div id="ch-dda-fixed">
+<h3>固定小数点 DDA (0503DDAFixedLineSpeed.p の直訳)</h3>
+
+<p>浮動小数点演算は 1984 年当時のハードウェアでは非常に遅かったため、QuickDraw は <strong>16.16 固定小数点</strong> を使って高速化しました。</p>
+
+<div class="callout algo">
+  <div class="callout-title">アルゴリズム — 16.16 固定小数点</div>
+  <p><code>slope = (dy &lt;&lt; 16) / dx</code> — 整数に 65536 を掛けて小数部を保持</p>
+  <p><code>fy &gt;&gt; 16</code> — 右シフトで整数部を取り出す（= round() の代替）</p>
+  <p>ループ内は <strong>整数加算のみ</strong> → 除算ゼロ、浮動小数点ゼロ</p>
+</div>
+
+<pre><code class="language-cpp">// QuickDraw 0503DDAFixedLineSpeed.p の C++ 直訳
+// 16.16 固定小数点: 上位16bit=整数部, 下位16bit=小数部
+void drawLineFixed(int x0, int y0, int x1, int y1, uint32_t color) {
+    const int SHIFT = 16;
+    const int ONE   = 1 &lt;&lt; SHIFT;   // 65536 = 固定小数点の 1.0
+
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+
+    if (std::abs(dx) &gt;= std::abs(dy)) {
+        if (x0 &gt; x1) { std::swap(x0,x1); std::swap(y0,y1); dx=-dx; dy=-dy; }
+        // 除算は初期化時 1 回のみ
+        int slope = (dy &lt;&lt; SHIFT) / dx;
+        int fy    = y0 &lt;&lt; SHIFT;
+        for (int x = x0; x &lt;= x1; x++) {
+            putPixel(x, fy &gt;&gt; SHIFT, color);  // シフトで round()
+            fy += slope;                        // 整数加算のみ
+        }
+    } else {
+        if (y0 &gt; y1) { std::swap(x0,x1); std::swap(y0,y1); dx=-dx; dy=-dy; }
+        int slope = (dx &lt;&lt; SHIFT) / dy;
+        int fx    = x0 &lt;&lt; SHIFT;
+        for (int y = y0; y &lt;= y1; y++) {
+            putPixel(fx &gt;&gt; SHIFT, y, color);
+            fx += slope;
+        }
+    }
+}</code></pre>
+
+<h4>速度比較（1000回ライン描画）</h4>
+<table>
+<tr><th>実装</th><th>演算</th><th>相対速度</th></tr>
+<tr><td>Float DDA (0501)</td><td>浮動小数点乗除</td><td>1.0x (基準)</td></tr>
+<tr><td>Fixed DDA (0503)</td><td>整数シフト・加算</td><td><strong>3〜8x 高速</strong></td></tr>
+<tr><td>GPU rasterizer</td><td>並列ハードウェア</td><td><strong>100x+ 高速</strong></td></tr>
+</table>
+</div>
+</section>
+
+<!-- 第3講 スラブ -->
+<section id="ch-tri">
+<div class="lecture-header">
+  <div class="lecture-num">03</div>
+  <div class="lecture-meta">
+    <h2>三角形ラスタライズ — スラブ法と Z バッファ</h2>
+    <div class="sub">QuickDraw 0507FixedRectSlabDrawLine.p</div>
+  </div>
+</div>
+
+<div id="ch-slab">
+<h3>スラブ (Slab) ラスタライズ</h3>
+
+<p>三角形を塗りつぶす最も直感的な方法は「水平線を積み重ねる」スラブ法です。QuickDraw の <code>0507</code> がこの実装です。</p>
+
+<div class="callout algo">
+  <div class="callout-title">アルゴリズム — スラブラスタライズ</div>
+  <p>1. 頂点を Y 座標でソート: top(v0) → mid(v1) → bottom(v2)</p>
+  <p>2. 長辺 (v0→v2) と 短辺上半 (v0→v1) の DDA を同時進行</p>
+  <p>3. 各スキャンライン y で: <code>for x = xa to xb: putPixel(x,y,color)</code></p>
+  <p>4. 中間点 (v1) で 短辺を v1→v2 に切り替え</p>
+</div>
+
+<pre><code class="language-cpp">// スラブ三角形 (フラットシェーディング)
+void fillTriangle(int ax, int ay, int bx, int by, int cx, int cy, uint32_t color) {
+    // Y でソート (ay &lt;= by &lt;= cy)
+    if (ay > by) { std::swap(ax,bx); std::swap(ay,by); }
+    if (by > cy) { std::swap(bx,cx); std::swap(by,cy); }
+    if (ay > by) { std::swap(ax,bx); std::swap(ay,by); }
+
+    const int SHIFT = 16;
+    int totalH = cy - ay;
+    if (totalH == 0) return;
+
+    // 長辺 a→c の傾き
+    int slopeLong = ((cx - ax) &lt;&lt; SHIFT) / totalH;
+
+    // 上半: a→b
+    int upperH = by - ay;
+    if (upperH > 0) {
+        int slopeShort = ((bx - ax) &lt;&lt; SHIFT) / upperH;
+        int xL = ax &lt;&lt; SHIFT, xR = ax &lt;&lt; SHIFT;
+        for (int y = ay; y &lt; by; y++) {
+            int x0 = xL &gt;&gt; SHIFT, x1 = xR &gt;&gt; SHIFT;
+            if (x0 > x1) std::swap(x0, x1);
+            for (int x = x0; x &lt;= x1; x++) putPixel(x, y, color);
+            xL += slopeLong; xR += slopeShort;
+        }
+    }
+
+    // 下半: b→c
+    int lowerH = cy - by;
+    if (lowerH > 0) {
+        int slopeShort = ((cx - bx) &lt;&lt; SHIFT) / lowerH;
+        int xL = (ax + (cx-ax) * upperH / totalH) &lt;&lt; SHIFT;
+        int xR = bx &lt;&lt; SHIFT;
+        for (int y = by; y &lt;= cy; y++) {
+            int x0 = xL &gt;&gt; SHIFT, x1 = xR &gt;&gt; SHIFT;
+            if (x0 > x1) std::swap(x0, x1);
+            for (int x = x0; x &lt;= x1; x++) putPixel(x, y, color);
+            xL += slopeLong; xR += slopeShort;
+        }
+    }
+}</code></pre>
+</div>
+
+<div id="ch-zbuf">
+<h3>Z バッファ（深度テスト）</h3>
+
+<p>複数の三角形が重なるとき、どちらが手前かを判定するのが Z バッファです。各ピクセルに「現在の最小深度」を記録し、新しいピクセルがより手前なら上書きします。</p>
+
+<div class="callout algo">
+  <div class="callout-title">アルゴリズム — Z バッファ深度補間</div>
+  <p>スキャンライン上の Z 値は線形補間: <code>z = z_left + (z_right - z_left) * frac</code></p>
+  <p>ここで <code>frac = (x - x_left) / (x_right - x_left)</code></p>
+</div>
+
+<pre><code class="language-cpp">// Z バッファ付き三角形塗りつぶし
+void fillTriangleZ(int ax, int ay, float az,
+                   int bx, int by, float bz,
+                   int cx, int cy, float cz, uint32_t color) {
+    // Y ソート (省略：ay &lt;= by &lt;= cy)
+    // ...
+    const int SHIFT = 16;
+    int totalH = cy - ay;
+    if (totalH == 0) return;
+
+    int slopeLong = ((cx - ax) &lt;&lt; SHIFT) / totalH;
+    float zSlopeLong = (cz - az) / totalH;
+
+    // 上半
+    int upperH = by - ay;
+    if (upperH > 0) {
+        int   slopeShort  = ((bx - ax) &lt;&lt; SHIFT) / upperH;
+        float zSlopeShort = (bz - az) / upperH;
+        int   xL = ax &lt;&lt; SHIFT, xR = ax &lt;&lt; SHIFT;
+        float zL = az, zR = az;
+
+        for (int y = ay; y &lt; by; y++) {
+            int x0 = xL &gt;&gt; SHIFT, x1 = xR &gt;&gt; SHIFT;
+            float z0 = zL, z1 = zR;
+            if (x0 > x1) { std::swap(x0,x1); std::swap(z0,z1); }
+
+            int span = x1 - x0;
+            for (int x = x0; x &lt;= x1; x++) {
+                float frac = span > 0 ? float(x - x0) / span : 0.f;
+                float z    = z0 + (z1 - z0) * frac;
+                // 深度テスト: より手前なら描画
+                if (m_fb.testAndSetDepth(x, y, z))
+                    m_fb.setPixel(x, y, color);
+            }
+            xL += slopeLong;  xR += slopeShort;
+            zL += zSlopeLong; zR += zSlopeShort;
+        }
+    }
+    // 下半 (同様)
+}</code></pre>
+</div>
+</section>
+
+<!-- 第4講 転送モード -->
+<section id="ch-transfer">
+<div class="lecture-header">
+  <div class="lecture-num">04</div>
+  <div class="lecture-meta">
+    <h2>転送モード — ブレンドの仕組み</h2>
+    <div class="sub">QuickDraw 0303TransferModes.p</div>
+  </div>
+</div>
+
+<p>転送モードは「新しいピクセルを既存のピクセルにどう合成するか」のルールです。QuickDraw は 8 種類のモードを定義していました。現代の AE や Photoshop の「描画モード」はこれを拡張したものです。</p>
+
+<table>
+<tr><th>QuickDraw モード</th><th>現代の名前</th><th>演算式</th><th>効果</th></tr>
+<tr><td><code>patCopy</code></td><td>Normal</td><td><code>dst = src</code></td><td>そのまま上書き</td></tr>
+<tr><td><code>patOr</code></td><td>Add</td><td><code>dst = src + dst</code></td><td>加算（明るくなる）</td></tr>
+<tr><td><code>notPatBic</code></td><td>Screen</td><td><code>dst = 1-(1-src)(1-dst)</code></td><td>さらに明るく</td></tr>
+<tr><td><code>patBic</code></td><td>Multiply</td><td><code>dst = src * dst</code></td><td>暗くなる</td></tr>
+</table>
+
+<pre><code class="language-cpp">// AE プラグイン内での転送モード実装
+void applyTransfer(float src, float& dst, TransferMode mode) {
+    switch (mode) {
+        case TransferMode::Normal:
+            dst = src;
+            break;
+        case TransferMode::Add:
+            dst = std::min(1.0f, src + dst);
+            break;
+        case TransferMode::Screen:
+            dst = 1.0f - (1.0f - src) * (1.0f - dst);
+            break;
+        case TransferMode::Multiply:
+            dst = src * dst;
+            break;
+    }
+}</code></pre>
+
+<div class="callout tip">
+  <div class="callout-title">QuickDraw → AE SDK の直接対応</div>
+  <p>AE SDK の <code>PF_Fixed</code> は QuickDraw の 16.16 固定小数点と全く同じ型です。<br>
+  AE SDK の <code>PF_Tile</code> は QuickDraw のスラブ幅と同じ概念です。<br>
+  1984 年の設計が 40 年後のプロツールにそのまま残っています。</p>
+</div>
+</section>
+
+<!-- 第5講 クリッピング -->
+<section id="ch-clip">
+<div class="lecture-header">
+  <div class="lecture-num">05</div>
+  <div class="lecture-meta">
+    <h2>クリッピング — 描画範囲の制限</h2>
+    <div class="sub">QuickDraw 0310RegionClipping.p</div>
+  </div>
+</div>
+
+<p>画面外のピクセルに書き込まないようにするのがクリッピングです。QuickDraw では <code>Region</code> という複雑な形状でクリッピングができましたが、最も基本的なのは矩形クリッピングです。</p>
+
+<pre><code class="language-cpp">struct ClipRect {
+    int x0, y0, x1, y1;
+};
+
+// setPixel に組み込むクリッピング
+void setPixelClipped(int x, int y, uint32_t color) {
+    if (!m_clipEnabled) { setPixel(x, y, color); return; }
+    if (x &lt; m_clip.x0 || x &gt;= m_clip.x1) return;
+    if (y &lt; m_clip.y0 || y &gt;= m_clip.y1) return;
+    setPixel(x, y, color);
+}
+
+void setClipRect(int x0, int y0, int x1, int y1) {
+    m_clip = {x0, y0, x1, y1};
+    m_clipEnabled = true;
+}
+
+void clearClipRect() { m_clipEnabled = false; }</code></pre>
+
+<h3>現代への発展: フラスタムカリング</h3>
+<p>3D 空間では、視野錐台（フラスタム）の外にあるオブジェクト全体をスキップすることで、大幅に高速化できます。これが Phase 3 の BVH カリングの基盤です。</p>
+
+<pre><code class="language-python"># Phase 3-3: フラスタム vs AABB 交差テスト
+class Frustum:
+    def __init__(self, planes):
+        self.planes = planes  # 6 planes, each (nx, ny, nz, d)
+
+    def intersects_aabb(self, aabb: AABB) -> bool:
+        for (nx, ny, nz, d) in self.planes:
+            # AABB の最遠点が平面の裏側なら完全に外 -> カリング
+            px = aabb.max_x if nx > 0 else aabb.min_x
+            py = aabb.max_y if ny > 0 else aabb.min_y
+            pz = aabb.max_z if nz > 0 else aabb.min_z
+            if nx*px + ny*py + nz*pz + d &lt; 0:
+                return False
+        return True</code></pre>
+</section>
+
+<!-- 第6講 3D -->
+<section id="ch-3d">
+<div class="lecture-header">
+  <div class="lecture-num">06</div>
+  <div class="lecture-meta">
+    <h2>3D 変換と透視投影 — Graf3D</h2>
+    <div class="sub">QuickDraw 0601RotatingCube.p / Graf3D</div>
+  </div>
+</div>
+
+<div id="ch-matrix">
+<h3>回転行列 (Pitch / Yaw / Roll)</h3>
+
+<p>3D の回転は 4×4 行列で表現します。Graf3D は Pitch (X 軸回転)・Yaw (Y 軸回転)・Roll (Z 軸回転) を定義していました。</p>
+
+<pre><code class="language-cpp">// 4x4 行列 (列優先)
+struct Mat4 {
+    float m[4][4];
+
+    Mat4() { memset(m, 0, sizeof(m)); m[0][0]=m[1][1]=m[2][2]=m[3][3]=1.f; }
+
+    static Mat4 rotationX(float rad); // Pitch
+    static Mat4 rotationY(float rad); // Yaw
+    static Mat4 rotationZ(float rad); // Roll
+    Mat4 operator*(const Mat4& o) const;
+    Vec3 transform(const Vec3& v) const;
+};
+
+// Pitch — X 軸回り (上下を向く)
+inline Mat4 Mat4::rotationX(float rad) {
+    Mat4 r;
+    float c = std::cos(rad);
+    float s = std::sin(rad);
+    r.m[1][1] =  c; r.m[1][2] = -s;
+    r.m[2][1] =  s; r.m[2][2] =  c;
+    return r;
+}
+
+// Yaw — Y 軸回り (左右を向く)
+inline Mat4 Mat4::rotationY(float rad) {
+    Mat4 r;
+    float c = std::cos(rad);
+    float s = std::sin(rad);
+    r.m[0][0] =  c; r.m[0][2] =  s;
+    r.m[2][0] = -s; r.m[2][2] =  c;
+    return r;
+}
+
+// Roll — Z 軸回り (傾ける)
+inline Mat4 Mat4::rotationZ(float rad) {
+    Mat4 r;
+    float c = std::cos(rad);
+    float s = std::sin(rad);
+    r.m[0][0] =  c; r.m[0][1] = -s;
+    r.m[1][0] =  s; r.m[1][1] =  c;
+    return r;
+}
+
+// 行列合成 (Yaw * Pitch * Roll = 複合回転)
+inline Mat4 Mat4::operator*(const Mat4& o) const {
+    Mat4 res;
+    for (int i = 0; i &lt; 4; i++)
+        for (int j = 0; j &lt; 4; j++) {
+            float s = 0;
+            for (int k = 0; k &lt; 4; k++) s += m[i][k] * o.m[k][j];
+            res.m[i][j] = s;
+        }
+    return res;
+}</code></pre>
+</div>
+
+<div id="ch-proj">
+<h3>透視投影</h3>
+
+<div class="callout algo">
+  <div class="callout-title">アルゴリズム — 透視投影</div>
+  <p><code>f = 1 / tan(fov/2)</code> — 焦点距離</p>
+  <p><code>sx = (x * f) / z</code> — x を z で割ることで遠いものが小さく見える</p>
+  <p><code>screen_x = (sx + 1) * W / 2</code> — NDC (-1,1) → ピクセル座標</p>
+</div>
+
+<pre><code class="language-cpp">struct ProjVert {
+    int   sx, sy;   // スクリーン座標
+    float depth;    // Z バッファ用深度
+};
+
+ProjVert perspectiveProject(const Vec3& v, int W, int H, float fov) {
+    float f   = 1.0f / std::tan(fov * 0.5f);
+    float sx  = (v.x * f) / v.z;   // 透視除算
+    float sy  = (v.y * f) / v.z;
+
+    return ProjVert{
+        (int)((sx + 1.0f) * W * 0.5f),   // NDC -> pixel
+        (int)((1.0f - sy) * H * 0.5f),   // Y 反転
+        v.z                                // 深度
+    };
+}</code></pre>
+</div>
+
+<h3>GLSL での等価実装 (Phase 2)</h3>
+<pre><code class="language-glsl">// cube.vert.glsl — 同じ計算を GPU で
+uniform mat4 uRotation;
+
+void main() {
+    vec4 rotated = uRotation * vec4(aPos, 1.0);
+
+    // 透視投影 (fov=60deg, f=1.732)
+    float f   = 1.732;
+    float z   = rotated.z + 3.0;   // カメラを後退
+    float sx  = rotated.x * f / z;
+    float sy  = rotated.y * f / z;
+
+    // NDC Z: OpenGL は [-1,1], DirectX は [0,1]
+    gl_Position = vec4(sx, sy, (z - 0.1) / (100.0 - 0.1) * 2.0 - 1.0, 1.0);
+    vColor = aColor;
+}</code></pre>
+
+<h3>HLSL との違い</h3>
+<table>
+<tr><th>項目</th><th>GLSL (OpenGL)</th><th>HLSL (DirectX)</th></tr>
+<tr><td>Uniform バッファ</td><td><code>uniform mat4 uRot</code></td><td><code>cbuffer : register(b0)</code></td></tr>
+<tr><td>頂点入力</td><td><code>layout(location=0) in vec3</code></td><td><code>float3 pos : POSITION</code></td></tr>
+<tr><td>出力位置</td><td><code>gl_Position</code></td><td><code>SV_Position</code></td></tr>
+<tr><td>NDC Z 範囲</td><td>[-1, 1]</td><td>[0, 1]</td></tr>
+<tr><td>行列乗算</td><td><code>mat * vec</code></td><td><code>mul(mat, vec)</code></td></tr>
+<tr><td>フラグメント出力</td><td><code>out vec4 fragColor</code></td><td><code>float4 : SV_Target</code></td></tr>
+</table>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════
+     PHASE 1
+═══════════════════════════════════════ -->
+<section id="p1-arch">
+<h2><span class="badge phase1">Phase 1</span> CPU ソフトウェアレンダラー — Full App from Scratch</h2>
+
+<h3 id="p1-arch">アーキテクチャ設計</h3>
+
+<div class="arch-box">
+main.cpp
+  │
+  ├─ [Framebuffer]  色バッファ + 深度バッファ
+  │     setPixel() / testAndSetDepth()
+  │
+  ├─ [Renderer]  描画アルゴリズム
+  │     drawLineDDA()    ← QD 0501
+  │     drawLineFixed()  ← QD 0503
+  │     fillTriangle()   ← QD 0507
+  │     fillTriangleZ()  ← QD 0507 + Z バッファ
+  │     setClipRect()    ← QD 0310
+  │
+  ├─ [Math3D]  数学
+  │     Vec3 / Mat4 / perspectiveProject() / ProjVert
+  │
+  └─ [SDL2]  ウィンドウ表示
+        SDL_UpdateTexture() でフレームバッファを画面に転送
+</div>
+
+<h3 id="p1-folder">フォルダ構成</h3>
+<div class="tree">
+<span class="dir">mini-renderer/</span>
+├── <span class="file">CMakeLists.txt</span>      <span class="comment"># SDL2 を FetchContent で自動取得</span>
+└── <span class="dir">src/</span>
+    ├── <span class="file">math3d.h</span>        <span class="comment"># Vec3 / Vec2 / Mat4 / ProjVert</span>
+    ├── <span class="file">framebuffer.h</span>   <span class="comment"># 色バッファ + 深度バッファ (ヘッダのみ)</span>
+    ├── <span class="file">framebuffer.cpp</span>
+    ├── <span class="file">renderer.h</span>      <span class="comment"># 描画アルゴリズム宣言</span>
+    ├── <span class="file">renderer.cpp</span>    <span class="comment"># DDA / スラブ / Z バッファ実装</span>
+    └── <span class="file">main.cpp</span>        <span class="comment"># キューブ定義 + メインループ</span>
+</div>
+
+<h3>CMakeLists.txt</h3>
+<pre><code class="language-cmake">cmake_minimum_required(VERSION 3.20)
+project(mini-renderer LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+
+include(FetchContent)
+FetchContent_Declare(SDL2
+    URL https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-2.30.9.tar.gz
+)
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(SDL2)
+
+add_executable(mini-renderer WIN32
+    src/main.cpp src/framebuffer.cpp src/renderer.cpp)
+target_include_directories(mini-renderer PRIVATE src)
+target_link_libraries(mini-renderer PRIVATE SDL2::SDL2main SDL2::SDL2-static)</code></pre>
+</section>
+
+<section id="p1-code">
+<h3 id="p1-math3d">math3d.h — 完全コード</h3>
+<pre><code class="language-cpp">#pragma once
+#include &lt;cmath&gt;
+#include &lt;cstring&gt;
+
+struct Vec3 {
+    float x, y, z;
+    Vec3(float x=0,float y=0,float z=0): x(x),y(y),z(z){}
+    Vec3 operator+(const Vec3& o)const{return{x+o.x,y+o.y,z+o.z};}
+    Vec3 operator-(const Vec3& o)const{return{x-o.x,y-o.y,z-o.z};}
+    Vec3 operator*(float s)     const{return{x*s,y*s,z*s};}
+    float dot(const Vec3& o)    const{return x*o.x+y*o.y+z*o.z;}
+    Vec3 cross(const Vec3& o)   const{
+        return{y*o.z-z*o.y, z*o.x-x*o.z, x*o.y-y*o.x};
+    }
+    float length() const{ return std::sqrt(x*x+y*y+z*z); }
+    Vec3 normalized() const{ float l=length(); return{x/l,y/l,z/l}; }
+};
+
+struct Vec2 { int x, y; };
+
+struct ProjVert {
+    int   sx, sy;   // スクリーン座標
+    float depth;    // 深度値 (Z バッファ用)
+};
+
+struct Mat4 {
+    float m[4][4];
+    Mat4(){ memset(m,0,sizeof(m)); m[0][0]=m[1][1]=m[2][2]=m[3][3]=1.f; }
+
+    static Mat4 rotationX(float rad);
+    static Mat4 rotationY(float rad);
+    static Mat4 rotationZ(float rad);
+
+    Mat4 operator*(const Mat4& o) const {
+        Mat4 r;
+        for(int i=0;i&lt;4;i++) for(int j=0;j&lt;4;j++){
+            float s=0; for(int k=0;k&lt;4;k++) s+=m[i][k]*o.m[k][j];
+            r.m[i][j]=s;
+        }
+        return r;
+    }
+
+    Vec3 transform(const Vec3& v) const {
+        float x=m[0][0]*v.x+m[0][1]*v.y+m[0][2]*v.z+m[0][3];
+        float y=m[1][0]*v.x+m[1][1]*v.y+m[1][2]*v.z+m[1][3];
+        float z=m[2][0]*v.x+m[2][1]*v.y+m[2][2]*v.z+m[2][3];
+        return{x,y,z};
+    }
+};
+
+inline Mat4 Mat4::rotationX(float r){
+    Mat4 m; float c=std::cos(r),s=std::sin(r);
+    m.m[1][1]= c; m.m[1][2]=-s;
+    m.m[2][1]= s; m.m[2][2]= c; return m;
+}
+inline Mat4 Mat4::rotationY(float r){
+    Mat4 m; float c=std::cos(r),s=std::sin(r);
+    m.m[0][0]= c; m.m[0][2]= s;
+    m.m[2][0]=-s; m.m[2][2]= c; return m;
+}
+inline Mat4 Mat4::rotationZ(float r){
+    Mat4 m; float c=std::cos(r),s=std::sin(r);
+    m.m[0][0]= c; m.m[0][1]=-s;
+    m.m[1][0]= s; m.m[1][1]= c; return m;
+}
+
+inline ProjVert perspectiveProject(const Vec3& v, int W, int H, float fov=1.047f){
+    float f  = 1.0f / std::tan(fov * 0.5f);
+    float sx = (v.x * f) / v.z;
+    float sy = (v.y * f) / v.z;
+    return ProjVert{
+        (int)((sx+1.0f)*W*0.5f),
+        (int)((1.0f-sy)*H*0.5f),
+        v.z
+    };
+}</code></pre>
+
+<h3 id="p1-fb">framebuffer.h / framebuffer.cpp</h3>
+<pre><code class="language-cpp">// framebuffer.h
+#pragma once
+#include &lt;vector&gt;
+#include &lt;cstdint&gt;
+#include &lt;algorithm&gt;
+
+class Framebuffer {
+    int m_width, m_height;
+    std::vector&lt;uint32_t&gt; m_color;
+    std::vector&lt;float&gt;    m_depth;
+public:
+    Framebuffer(int w, int h);
+    void clear(uint32_t color = 0xFF000000);
+    void clearDepth();
+    void setPixel(int x, int y, uint32_t color);
+    uint32_t getPixel(int x, int y) const;
+    bool testAndSetDepth(int x, int y, float depth);
+    const uint32_t* data() const { return m_color.data(); }
+    int width()  const { return m_width;  }
+    int height() const { return m_height; }
+};</code></pre>
+
+<pre><code class="language-cpp">// framebuffer.cpp
+#include "framebuffer.h"
+
+Framebuffer::Framebuffer(int w, int h)
+    : m_width(w), m_height(h),
+      m_color(w * h, 0xFF000000),
+      m_depth(w * h, 1e30f) {}
+
+void Framebuffer::clear(uint32_t color) {
+    std::fill(m_color.begin(), m_color.end(), color);
+}
+
+void Framebuffer::clearDepth() {
+    std::fill(m_depth.begin(), m_depth.end(), 1e30f);
+}
+
+void Framebuffer::setPixel(int x, int y, uint32_t color) {
+    if (x &lt; 0 || x &gt;= m_width || y &lt; 0 || y &gt;= m_height) return;
+    m_color[y * m_width + x] = color;
+}
+
+uint32_t Framebuffer::getPixel(int x, int y) const {
+    return m_color[y * m_width + x];
+}
+
+bool Framebuffer::testAndSetDepth(int x, int y, float depth) {
+    if (x &lt; 0 || x &gt;= m_width || y &lt; 0 || y &gt;= m_height) return false;
+    float& slot = m_depth[y * m_width + x];
+    if (depth &lt; slot) { slot = depth; return true; }
+    return false;
+}</code></pre>
+
+<h3 id="p1-renderer">renderer.h / renderer.cpp</h3>
+<pre><code class="language-cpp">// renderer.h
+#pragma once
+#include "framebuffer.h"
+#include "math3d.h"
+
+class Renderer {
+    Framebuffer& m_fb;
+    bool m_clipEnabled;
+    int m_cx0, m_cy0, m_cx1, m_cy1;
+
+    void putPixel(int x, int y, uint32_t c);
+
+public:
+    explicit Renderer(Framebuffer& fb);
+
+    // QD 0501: float DDA
+    void drawLineDDA(int x0,int y0,int x1,int y1,uint32_t c);
+    // QD 0503: 16.16 fixed-point DDA
+    void drawLineFixed(int x0,int y0,int x1,int y1,uint32_t c);
+    // QD 0507: slab triangle (no Z)
+    void fillTriangle(int ax,int ay,int bx,int by,int cx,int cy,uint32_t c);
+    // QD 0507 + Z buffer
+    void fillTriangleZ(int ax,int ay,float az,
+                       int bx,int by,float bz,
+                       int cx,int cy,float cz, uint32_t c);
+    // QD 0310: clip rect
+    void setClipRect(int x0,int y0,int x1,int y1);
+    void clearClipRect();
+};</code></pre>
+
+<h3 id="p1-main">main.cpp — 回転キューブ</h3>
+<pre><code class="language-cpp">#include &lt;SDL.h&gt;
+#include "framebuffer.h"
+#include "renderer.h"
+#include "math3d.h"
+
+static const int W = 800, H = 600;
+
+// キューブ頂点 (8点)
+static const Vec3 CUBE_VERTS[8] = {
+    {-1,-1,-1},{1,-1,-1},{1,1,-1},{-1,1,-1},
+    {-1,-1, 1},{1,-1, 1},{1,1, 1},{-1,1, 1}
+};
+
+// 面 (12三角形, 法線方向で色分け)
+struct Face { int a,b,c; uint32_t color; };
+static const Face CUBE_FACES[12] = {
+    {0,1,2,0xFFFF4444},{0,2,3,0xFFFF4444}, // 前 赤
+    {5,4,7,0xFF44FF44},{5,7,6,0xFF44FF44}, // 後 緑
+    {4,0,3,0xFF4444FF},{4,3,7,0xFF4444FF}, // 左 青
+    {1,5,6,0xFFFFFF44},{1,6,2,0xFFFFFF44}, // 右 黄
+    {3,2,6,0xFFFF44FF},{3,6,7,0xFFFF44FF}, // 上 紫
+    {4,5,1,0xFF44FFFF},{4,1,0,0xFF44FFFF}, // 下 水
+};
+
+int main(int argc, char* argv[]) {
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Window*   win = SDL_CreateWindow("mini-renderer",
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, W, H, 0);
+    SDL_Renderer* rnd = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Texture*  tex = SDL_CreateTexture(rnd,
+        SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, W, H);
+
+    Framebuffer fb(W, H);
+    Renderer    renderer(fb);
+
+    float yaw=0, pitch=0;
+    bool  running = true;
+    SDL_Event ev;
+    Uint32 lastTick = SDL_GetTicks();
+
+    while (running) {
+        while (SDL_PollEvent(&ev)) {
+            if (ev.type == SDL_QUIT) running = false;
+        }
+
+        // キー入力で回転
+        const Uint8* keys = SDL_GetKeyboardState(nullptr);
+        float dt = (SDL_GetTicks() - lastTick) / 1000.f;
+        lastTick = SDL_GetTicks();
+        if (keys[SDL_SCANCODE_A]) yaw   -= 1.5f * dt;
+        if (keys[SDL_SCANCODE_D]) yaw   += 1.5f * dt;
+        if (keys[SDL_SCANCODE_W]) pitch -= 1.5f * dt;
+        if (keys[SDL_SCANCODE_S]) pitch += 1.5f * dt;
+
+        // クリア
+        fb.clear(0xFF1a1a2e);
+        fb.clearDepth();
+
+        // 変換行列
+        Mat4 rot = Mat4::rotationY(yaw) * Mat4::rotationX(pitch);
+
+        // 投影
+        ProjVert proj[8];
+        for (int i = 0; i &lt; 8; i++) {
+            Vec3 v = rot.transform(CUBE_VERTS[i]);
+            v.z += 4.0f;   // カメラから離す
+            proj[i] = perspectiveProject(v, W, H);
+        }
+
+        // 背面カリング + 描画
+        for (const auto& f : CUBE_FACES) {
+            const ProjVert& pa = proj[f.a];
+            const ProjVert& pb = proj[f.b];
+            const ProjVert& pc = proj[f.c];
+            // 外積の Z で前面/背面判定
+            int cx = (pb.sx-pa.sx)*(pc.sy-pa.sy)-(pb.sy-pa.sy)*(pc.sx-pa.sx);
+            if (cx &gt;= 0) continue;  // 背面スキップ
+            renderer.fillTriangleZ(
+                pa.sx, pa.sy, pa.depth,
+                pb.sx, pb.sy, pb.depth,
+                pc.sx, pc.sy, pc.depth, f.color);
+        }
+
+        // フレームバッファ -> SDL テクスチャ -> 画面
+        SDL_UpdateTexture(tex, nullptr, fb.data(), W * (int)sizeof(uint32_t));
+        SDL_RenderCopy(rnd, tex, nullptr, nullptr);
+        SDL_RenderPresent(rnd);
+    }
+
+    SDL_DestroyTexture(tex);
+    SDL_DestroyRenderer(rnd);
+    SDL_DestroyWindow(win);
+    SDL_Quit();
+    return 0;
+}</code></pre>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════
+     PHASE 2
+═══════════════════════════════════════ -->
+<section id="p2-arch">
+<h2><span class="badge phase2">Phase 2</span> GPU レンダラー — OpenGL + GLSL / HLSL</h2>
+
+<h3>Phase 1 → Phase 2 対応表</h3>
+<table>
+<tr><th>Phase 1 (CPU コード)</th><th>Phase 2 (GPU)</th><th>自動化</th></tr>
+<tr><td><code>rot.transform(v)</code></td><td>Vertex Shader</td><td>手動 (uniform)</td></tr>
+<tr><td><code>perspectiveProject()</code></td><td>Vertex Shader</td><td>手動</td></tr>
+<tr><td><code>fillTriangleZ()</code> スラブ</td><td>GPU Rasterizer</td><td><strong>完全自動</strong></td></tr>
+<tr><td><code>testAndSetDepth()</code></td><td>GPU Depth Buffer</td><td><strong>完全自動</strong></td></tr>
+<tr><td><code>putPixel()</code></td><td>Fragment Shader</td><td>手動</td></tr>
+</table>
+
+<h3 id="p2-folder">フォルダ構成</h3>
+<div class="tree">
+<span class="dir">mini-renderer-gpu/</span>
+├── <span class="file">CMakeLists.txt</span>      <span class="comment"># GLAD2 + SDL2 FetchContent</span>
+├── <span class="dir">shaders/</span>
+│   ├── <span class="file">cube.vert.glsl</span>  <span class="comment"># OpenGL 動作版</span>
+│   ├── <span class="file">cube.frag.glsl</span>
+│   ├── <span class="file">cube.vert.hlsl</span>  <span class="comment"># DirectX 参照版</span>
+│   └── <span class="file">cube.frag.hlsl</span>
+└── <span class="dir">src/</span>
+    ├── <span class="file">gl_renderer.h/cpp</span>  <span class="comment"># VAO/VBO/IBO + GPU タイマー</span>
+    ├── <span class="file">timer.h/cpp</span>
+    └── <span class="file">main.cpp</span>
+</div>
+
+<h3 id="p2-glsl">GLSL シェーダー — 完全コード</h3>
+<pre><code class="language-glsl">// cube.vert.glsl
+#version 330 core
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aColor;
+
+uniform mat4 uRotation;
+
+out vec3 vColor;
+
+void main() {
+    vec4 rotated = uRotation * vec4(aPos, 1.0);
+    float z = rotated.z + 4.0;
+
+    float fov_f = 1.732;  // 1/tan(30deg) = fov 60deg
+    float sx = rotated.x * fov_f / z;
+    float sy = rotated.y * fov_f / z;
+
+    // OpenGL NDC Z: [-1, 1]
+    float near = 0.1, far = 100.0;
+    float ndc_z = (z - near) / (far - near) * 2.0 - 1.0;
+
+    gl_Position = vec4(sx, sy, ndc_z, 1.0);
+    vColor = aColor;
+}</code></pre>
+
+<pre><code class="language-glsl">// cube.frag.glsl
+#version 330 core
+in  vec3 vColor;
+out vec4 fragColor;
+
+void main() {
+    fragColor = vec4(vColor, 1.0);
+}</code></pre>
+
+<h3 id="p2-hlsl">HLSL 参照シェーダー</h3>
+<pre><code class="language-hlsl">// cube.vert.hlsl (DirectX 11/12 参照)
+cbuffer PerFrame : register(b0) {
+    float4x4 uRotation;
+};
+
+struct VSInput  { float3 pos   : POSITION; float3 color : COLOR; };
+struct VSOutput { float4 pos   : SV_Position; float3 color : COLOR; };
+
+VSOutput main(VSInput IN) {
+    float4 rotated = mul(uRotation, float4(IN.pos, 1.0));
+    float z  = rotated.z + 4.0;
+    float f  = 1.732;
+    float sx = rotated.x * f / z;
+    float sy = rotated.y * f / z;
+
+    // DirectX NDC Z: [0, 1] (OpenGL の [-1,1] と異なる)
+    float near = 0.1, far = 100.0;
+    float ndc_z = (z - near) / (far - near);
+
+    VSOutput OUT;
+    OUT.pos   = float4(sx, sy, ndc_z, 1.0);
+    OUT.color = IN.color;
+    return OUT;
+}</code></pre>
+
+<pre><code class="language-hlsl">// cube.frag.hlsl
+float4 main(float3 color : COLOR) : SV_Target {
+    return float4(color, 1.0);
+}</code></pre>
+
+<h3 id="p2-gl">OpenGL 実装 — gl_renderer.cpp 要点</h3>
+<pre><code class="language-cpp">// GPU タイマークエリで描画時間を計測
+GLuint queryObj;
+glGenQueries(1, &queryObj);
+glBeginQuery(GL_TIME_ELAPSED, queryObj);
+
+// 描画
+glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+
+glEndQuery(GL_TIME_ELAPSED);
+GLuint64 elapsed;
+glGetQueryObjectui64v(queryObj, GL_QUERY_RESULT, &elapsed);
+double gpuMs = elapsed / 1e6;  // nanosec -> ms
+
+// ウィンドウタイトルに表示
+char title[128];
+snprintf(title, sizeof(title),
+    "mini-renderer-gpu | FPS: %.0f | CPU: %.2fms | GPU: %.2fms",
+    1000.0 / cpuMs, cpuMs, gpuMs);
+SDL_SetWindowTitle(window, title);</code></pre>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════
+     PHASE 3
+═══════════════════════════════════════ -->
+<section id="p3-vol">
+<h2><span class="badge phase3">Phase 3</span> 流体キャッシュ最適化</h2>
+
+<h3>Jet .vol フォーマット仕様</h3>
+
+<table>
+<tr><th>オフセット</th><th>型</th><th>内容</th></tr>
+<tr><td>0-2</td><td>char[3]</td><td>マジック: <code>"VOL"</code></td></tr>
+<tr><td>3</td><td>uint8</td><td>バージョン: <code>3</code></td></tr>
+<tr><td>4-7</td><td>int32</td><td>エンコーディング: <code>1</code> = float32</td></tr>
+<tr><td>8-11</td><td>int32</td><td>xRes</td></tr>
+<tr><td>12-15</td><td>int32</td><td>yRes</td></tr>
+<tr><td>16-19</td><td>int32</td><td>zRes</td></tr>
+<tr><td>20-23</td><td>int32</td><td>nChannels</td></tr>
+<tr><td>24-47</td><td>float32 x6</td><td>AABB: minX,minY,minZ, maxX,maxY,maxZ</td></tr>
+<tr><td>48+</td><td>float32[]</td><td>密度データ [xRes × yRes × zRes]</td></tr>
+</table>
+
+<pre><code class="language-python"># vol_reader.py — 完全実装
+import struct, numpy as np
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class VolHeader:
+    x_res: int; y_res: int; z_res: int; n_channels: int
+    aabb_min: tuple; aabb_max: tuple
+
+@dataclass
+class VolFrame:
+    header: VolHeader
+    data:   np.ndarray   # shape: (xRes, yRes, zRes) float32
+
+def read_vol(path: str) -> Optional[VolFrame]:
+    with open(path, "rb") as f:
+        raw = f.read()
+    if raw[:3] != b"VOL": return None
+
+    encoding   = struct.unpack_from("&lt;i", raw, 4)[0]
+    x_res      = struct.unpack_from("&lt;i", raw, 8)[0]
+    y_res      = struct.unpack_from("&lt;i", raw, 12)[0]
+    z_res      = struct.unpack_from("&lt;i", raw, 16)[0]
+    n_channels = struct.unpack_from("&lt;i", raw, 20)[0]
+    aabb       = struct.unpack_from("&lt;6f", raw, 24)
+
+    count = x_res * y_res * z_res * n_channels
+    data  = np.frombuffer(raw, dtype=np.float32, count=count, offset=48)
+    data  = data.reshape((x_res, y_res, z_res))
+
+    return VolFrame(
+        header=VolHeader(x_res, y_res, z_res, n_channels,
+                         aabb[:3], aabb[3:]),
+        data=data
+    )</code></pre>
+</section>
+
+<section id="p3-bvh">
+<h3>BVH (Bounding Volume Hierarchy) — SAH 分割</h3>
+
+<div class="callout algo">
+  <div class="callout-title">アルゴリズム — SAH (Surface Area Heuristic)</div>
+  <p>分割コスト = <code>左SA/親SA × 左N + 右SA/親SA × 右N</code></p>
+  <p>全候補軸・分割位置を試してコスト最小の分割を選ぶ。</p>
+  <p>結果: 均一なツリーより <strong>2〜5x 高速</strong> なクエリ</p>
+</div>
+
+<pre><code class="language-python"># bvh.py — SAH BVH 完全実装
+from dataclasses import dataclass, field
+from typing import List, Optional
+import numpy as np
+from .aabb import AABB
+
+@dataclass
+class BVHNode:
+    aabb:     AABB
+    left:     Optional['BVHNode'] = None
+    right:    Optional['BVHNode'] = None
+    items:    List[int] = field(default_factory=list)
+    is_leaf:  bool = False
+
+class BVHTree:
+    def __init__(self, aabbs: List[AABB], max_leaf=4):
+        self.aabbs = aabbs
+        self.max_leaf = max_leaf
+        indices = list(range(len(aabbs)))
+        self.root = self._build(indices)
+
+    def _build(self, indices: List[int]) -> BVHNode:
+        union = AABB.infinite()
+        for i in indices:
+            union = union.union(self.aabbs[i])
+
+        if len(indices) &lt;= self.max_leaf:
+            return BVHNode(aabb=union, items=indices, is_leaf=True)
+
+        # SAH 最良分割を探す
+        best_cost  = float('inf')
+        best_axis  = 0
+        best_split = 0
+
+        parent_sa = union.surface_area()
+
+        for axis in range(3):          # X, Y, Z を試す
+            sorted_idx = sorted(indices,
+                key=lambda i: self.aabbs[i].center()[axis])
+
+            for s in range(1, len(sorted_idx)):
+                left_box = AABB.infinite()
+                for i in sorted_idx[:s]:
+                    left_box = left_box.union(self.aabbs[i])
+                right_box = AABB.infinite()
+                for i in sorted_idx[s:]:
+                    right_box = right_box.union(self.aabbs[i])
+
+                cost = (left_box.surface_area()  / parent_sa * s +
+                        right_box.surface_area() / parent_sa * (len(indices)-s))
+
+                if cost &lt; best_cost:
+                    best_cost  = cost
+                    best_axis  = axis
+                    best_split = s
+
+        sorted_idx = sorted(indices,
+            key=lambda i: self.aabbs[i].center()[best_axis])
+        left  = self._build(sorted_idx[:best_split])
+        right = self._build(sorted_idx[best_split:])
+        return BVHNode(aabb=union, left=left, right=right)
+
+    def query_frustum(self, frustum) -> List[int]:
+        result = []
+        self._query_node(self.root, frustum, result)
+        return result
+
+    def _query_node(self, node: BVHNode, frustum, result: List[int]):
+        if not frustum.intersects_aabb(node.aabb):
+            return   # 視野外 -> この子ノードを全部スキップ
+        if node.is_leaf:
+            result.extend(node.items)
+        else:
+            self._query_node(node.left,  frustum, result)
+            self._query_node(node.right, frustum, result)</code></pre>
+</section>
+
+<section id="p3-dirty">
+<h3>ダーティレクト差分更新</h3>
+
+<div class="callout algo">
+  <div class="callout-title">アルゴリズム — Dirty Rect (QuickDraw 0310 の発展)</div>
+  <p>QuickDraw の Region は「変化した領域」を追跡していた。</p>
+  <p>現代のボクセル実装: <code>|current - previous| &gt; threshold</code> → 変化ボクセルのみ更新</p>
+  <p>実測: 静的流体シーンで <strong>96.9% スキップ</strong></p>
+</div>
+
+<pre><code class="language-python"># cache_manager.py — DirtyTracker
+import numpy as np
+
+class DirtyTracker:
+    def __init__(self, threshold: float = 0.01):
+        self.threshold = threshold
+        self._prev: np.ndarray = None
+
+    def get_dirty_mask(self, current: np.ndarray) -> np.ndarray:
+        """変化したボクセルのマスクを返す (True = 更新が必要)"""
+        if self._prev is None:
+            self._prev = current.copy()
+            return np.ones(current.shape, dtype=bool)  # 初回は全部更新
+
+        diff = np.abs(current - self._prev)
+        mask = diff > self.threshold
+        self._prev = current.copy()
+        return mask
+
+    def skip_rate(self, mask: np.ndarray) -> float:
+        total = mask.size
+        updated = int(np.sum(mask))
+        return 1.0 - updated / total if total > 0 else 0.0</code></pre>
+</section>
+
+<section id="p3-lod">
+<h3>LOD (Level of Detail)</h3>
+
+<pre><code class="language-python"># lod.py
+import numpy as np
+from dataclasses import dataclass
+
+@dataclass
+class LODLevel:
+    level:  int         # 0=フル, 1=1/2, 2=1/4
+    stride: int         # データを何個おきに読むか
+    desc:   str
+
+LOD_TABLE = [
+    LODLevel(0, 1, "Full  resolution"),
+    LODLevel(1, 2, "Half  resolution  (1/8 cost)"),
+    LODLevel(2, 4, "Quarter resolution (1/64 cost)"),
+]
+
+class VoxelLOD:
+    @staticmethod
+    def downsample(data: np.ndarray, level: int) -> np.ndarray:
+        """ストライドスライシングで LOD ダウンサンプル"""
+        stride = 2 ** level
+        return data[::stride, ::stride, ::stride]
+
+class LODSelector:
+    def __init__(self, distances: list):
+        self.distances = distances  # [lod0_max_dist, lod1_max_dist]
+
+    def select(self, dist: float) -> LODLevel:
+        if dist &lt; self.distances[0]: return LOD_TABLE[0]
+        if dist &lt; self.distances[1]: return LOD_TABLE[1]
+        return LOD_TABLE[2]</code></pre>
+</section>
+
+<section id="p3-lru">
+<h3>LRU フレームキャッシュ</h3>
+
+<pre><code class="language-python"># cache_manager.py — LRU
+from collections import OrderedDict
+
+class LRUFrameCache:
+    def __init__(self, capacity: int = 8):
+        self.capacity = capacity
+        self._cache: OrderedDict = OrderedDict()
+
+    def get(self, frame: int):
+        if frame not in self._cache:
+            return None
+        self._cache.move_to_end(frame)   # 最近使用に昇格
+        return self._cache[frame]
+
+    def put(self, frame: int, data):
+        if frame in self._cache:
+            self._cache.move_to_end(frame)
+        else:
+            if len(self._cache) >= self.capacity:
+                self._cache.popitem(last=False)  # 最古を退避
+            self._cache[frame] = data</code></pre>
+</section>
+
+<section id="p3-blender">
+<h3 id="p3-blender">Blender アドオン — 完全構成</h3>
+
+<div class="arch-box">
+blender-fluid-viewer/
+  __init__.py       bl_info / register / Scene プロパティ
+  vol_reader.py     .vol パーサー
+  cache_manager.py  DirtyTracker + LRUFrameCache + BVHCuller
+  operators.py      Load / Unload / Export VDB オペレーター
+  panels.py         Properties パネル UI
+</div>
+
+<pre><code class="language-python"># operators.py — フレーム変更ハンドラー
+import bpy
+import numpy as np
+from .vol_reader import read_vol, vol_frame_path
+from .cache_manager import CacheManager
+
+def _on_frame_change(scene):
+    """bpy.app.handlers.frame_change_post に登録"""
+    cache_dir = scene.fcv_cache_dir
+    frame     = scene.frame_current
+    threshold = scene.fcv_threshold
+    lod       = scene.fcv_lod_level
+
+    mgr   = CacheManager.get_manager()
+    frame_data = mgr.load_frame(cache_dir, frame)
+    if frame_data is None:
+        return
+
+    dirty_mask = mgr.dirty_tracker.get_dirty_mask(frame_data.data)
+    skip = mgr.dirty_tracker.skip_rate(dirty_mask)
+    scene.fcv_stats = f"Skip: {skip:.1%} | Frame: {frame}"
+
+    _update_blender_object(frame_data, dirty_mask, lod)
+
+def _update_blender_object(frame_data, dirty_mask, lod_level):
+    """変化ボクセルのみメッシュ点群に変換"""
+    data = frame_data.data
+    if lod_level > 0:
+        stride = 2 ** lod_level
+        data        = data[::stride, ::stride, ::stride]
+        dirty_mask  = dirty_mask[::stride, ::stride, ::stride]
+
+    # 変化ボクセルだけ点を作成
+    indices = np.argwhere(dirty_mask & (data > 0.01))
+    if len(indices) == 0:
+        return
+
+    coords = [
+        (ix / data.shape[0], iy / data.shape[1], iz / data.shape[2])
+        for ix, iy, iz in indices
+    ]
+
+    obj_name = "FluidCache"
+    mesh = bpy.data.meshes.new(obj_name)
+    mesh.from_pydata(coords, [], [])
+    mesh.update()
+
+    if obj_name in bpy.data.objects:
+        bpy.data.objects[obj_name].data = mesh
+    else:
+        obj = bpy.data.objects.new(obj_name, mesh)
+        bpy.context.scene.collection.objects.link(obj)</code></pre>
+</section>
+
+<section id="p3-houdini">
+<h3 id="p3-houdini">Houdini HDA — SOP Cook</h3>
+
+<pre><code class="language-python"># sop_cook.py — Houdini Python SOP エントリポイント
+import hou, numpy as np
+from vol_reader import read_vol, vol_frame_path
+
+_node_state = {}   # ノードごとの DirtyTracker 状態
+
+def cook(node, geo):
+    cache_dir  = node.parm("cache_dir").evalAsString()
+    frame      = int(hou.frame())
+    threshold  = node.parm("threshold").evalAsFloat()
+    out_type   = node.parm("output_type").evalAsString()
+
+    path = vol_frame_path(cache_dir, frame)
+    vol  = read_vol(path)
+    if vol is None:
+        node.setComment(f"File not found: {path}")
+        return
+
+    node_id = node.sessionId()
+    prev    = _node_state.get(node_id)
+    if prev is not None:
+        diff  = np.abs(vol.data - prev)
+        mask  = diff > threshold
+        skip  = 1.0 - np.sum(mask) / mask.size
+    else:
+        mask = np.ones(vol.data.shape, dtype=bool)
+        skip = 0.0
+    _node_state[node_id] = vol.data.copy()
+
+    if out_type == "points":
+        _output_points(geo, vol, mask)
+    else:
+        _output_volume(geo, vol)
+
+    node.setComment(f"Frame {frame} | Skip {skip:.1%}")
+
+def _output_points(geo, vol, mask):
+    indices = np.argwhere(mask & (vol.data > 0.01))
+    if len(indices) == 0: return
+    pts = geo.createPoints(len(indices))
+    density_attr = geo.addAttrib(hou.attribType.Point, "density", 0.0)
+    for idx, (ix, iy, iz) in enumerate(indices):
+        pts[idx].setPosition(hou.Vector3(
+            ix / vol.header.x_res,
+            iy / vol.header.y_res,
+            iz / vol.header.z_res))
+        pts[idx].setAttribValue(density_attr, float(vol.data[ix,iy,iz]))</code></pre>
+</section>
+
+<section id="p3-lib">
+<h3 id="p3-lib">汎用最適化ライブラリ API</h3>
+
+<pre><code class="language-python"># optimizer.py — 1 行 API
+from dataclasses import dataclass
+from typing import List
+import numpy as np
+
+@dataclass
+class OptimizerConfig:
+    lod_distances: List[float] = (10.0, 30.0)
+    cache_size:    int          = 8
+    threshold:     float        = 0.01
+
+@dataclass
+class OptimizeResult:
+    visible_ids: List[int]
+    lod_levels:  List[int]
+    stats:       dict
+
+class RenderOptimizer:
+    def __init__(self, config: OptimizerConfig):
+        from .bvh       import BVHTree
+        from .lod       import LODSelector
+        from .cache_manager import LRUFrameCache, DirtyTracker
+        self.lod      = LODSelector(config.lod_distances)
+        self.cache    = LRUFrameCache(config.cache_size)
+        self.dirty    = DirtyTracker(config.threshold)
+        self.bvh      = None
+
+    def optimize_frame(self, volumes, camera_pos, camera_dir, prev_frame=None):
+        from .aabb import AABB, Frustum
+        aabbs = [v.aabb for v in volumes]
+        if self.bvh is None:
+            from .bvh import BVHTree
+            self.bvh = BVHTree(aabbs)
+
+        frustum     = Frustum.from_camera(camera_pos, camera_dir)
+        visible_ids = self.bvh.query_frustum(frustum)
+
+        lod_levels = [
+            self.lod.select(
+                np.linalg.norm(np.array(volumes[i].aabb.center()) - camera_pos)
+            ).level
+            for i in visible_ids
+        ]
+
+        dirty_mask  = self.dirty.get_dirty_mask(
+            np.stack([volumes[i].data for i in visible_ids]))
+        skip_rate   = self.dirty.skip_rate(dirty_mask)
+
+        return OptimizeResult(
+            visible_ids=visible_ids,
+            lod_levels=lod_levels,
+            stats={"skip_rate": skip_rate,
+                   "visible": len(visible_ids),
+                   "total":   len(volumes)}
+        )</code></pre>
+
+<h3>テスト実測値</h3>
+<table>
+<tr><th>テスト</th><th>結果</th></tr>
+<tr><td>BVH 構築 (125 アイテム)</td><td>Depth 7 / 0.18ms</td></tr>
+<tr><td>BVH クエリ</td><td>8 アイテムヒット（正確）</td></tr>
+<tr><td>LOD 距離 2 → LOD0</td><td>正確</td></tr>
+<tr><td>LOD1: 処理量</td><td><strong>1/8</strong></td></tr>
+<tr><td>LOD2: 処理量</td><td><strong>1/64</strong></td></tr>
+<tr><td>ダーティレクト 2 フレーム目</td><td><strong>96.9% スキップ</strong></td></tr>
+<tr><td>フルパイプライン</td><td><strong>0.23ms/frame</strong></td></tr>
+</table>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════
+     PHASE 4
+═══════════════════════════════════════ -->
+<section id="p4-arch">
+<h2><span class="badge phase4">Phase 4</span> After Effects プラグイン</h2>
+
+<h3>AE SDK と QuickDraw の対応</h3>
+<table>
+<tr><th>AE の概念</th><th>QuickDraw の対応</th><th>共通点</th></tr>
+<tr><td><code>PF_EffectWorld</code></td><td><code>GrafPort portBits</code></td><td>ピクセルバッファ</td></tr>
+<tr><td><code>PF_Fixed</code> (16.16)</td><td>固定小数点 0503</td><td>全く同じ型</td></tr>
+<tr><td><code>PF_Tile</code></td><td>スラブ幅 0507</td><td>水平ストリップ</td></tr>
+<tr><td>DirtyRect チェック</td><td>RegionClipping 0310</td><td>変化領域追跡</td></tr>
+<tr><td>Transfer Mode</td><td>TransferModes 0303</td><td>1:1 対応</td></tr>
+<tr><td><code>.r</code> リソース</td><td><code>0600MacTech3D.R</code></td><td>同一フォーマット</td></tr>
+</table>
+
+<h3 id="p4-folder">フォルダ構成</h3>
+<div class="tree">
+<span class="dir">ae-fluid-effect/</span>
+├── <span class="file">CMakeLists.txt</span>
+├── <span class="dir">resources/</span>
+│   └── <span class="file">fluid_effect.r</span>    <span class="comment"># PiPL リソース (QuickDraw .R と同形式)</span>
+└── <span class="dir">src/</span>
+    ├── <span class="file">fluid_effect.h/cpp</span>  <span class="comment"># エフェクトメイン、パラメータ</span>
+    ├── <span class="file">vol_loader.h/cpp</span>    <span class="comment"># C++ .vol パーサー</span>
+    └── <span class="file">tile_renderer.h/cpp</span> <span class="comment"># タイル描画 + ダーティレクト</span>
+</div>
+
+<h3 id="p4-tile">タイル描画ロジック</h3>
+
+<pre><code class="language-cpp">// tile_renderer.cpp — renderTile (QuickDraw スラブの発展)
+void TileRenderer::renderTile(
+    PF_EffectWorld* output, PF_EffectWorld* input,
+    const RenderTile& tile, const VolFrame& vol,
+    const SequenceData& seqData, const TileParams& params)
+{
+    for (int y = tile.y0; y &lt; tile.y1; y++) {
+        PF_Pixel* outRow = (PF_Pixel*)((char*)output->data
+                           + y * output->rowbytes);
+        for (int x = tile.x0; x &lt; tile.x1; x++) {
+            // Dirty Rect チェック: 前フレームと同じなら skip
+            if (seqData.prev_density) {
+                int idx = y * output->width + x;
+                float prev = seqData.prev_density[idx];
+                float curr = sampleVol(vol, x, y, params);
+                if (std::abs(curr - prev) &lt; 0.005f) continue; // スキップ
+            }
+
+            // レイマーチング (固定小数点 Z ステップ = QD 0503)
+            float density = raymarch(vol, x, y, params);
+
+            // 転送モード適用 (QD 0303)
+            PF_Pixel src_pix = densityToPixel(density, params);
+            applyTransfer(src_pix, outRow[x], params.transfer_mode);
+        }
+    }
+}</code></pre>
+
+<h3 id="p4-code">PiPL リソース (fluid_effect.r)</h3>
+<pre><code class="language-c">// fluid_effect.r — QuickDraw の .R ファイルと同一形式
+#include "AEConfig.h"
+#include "AE_EffectVers.h"
+
+resource 'PiPL' (16000) {
+    { Effect,
+      Name { "Fluid Study Effect" },
+      Category { "FluidStudy" },
+      CodeWin64X86 { "EffectMain" },   // エントリポイント名
+      AE_Effect_Spec_Version { 13, 15 },
+      AE_Effect_Version { 0x00040000 },
+      AE_Effect_Info_Flags { 0 },
+      AE_Effect_Global_InFlags { 0 },
+      AE_Effect_Global_InFlags2 { PF_InFlag2_SUPPORTS_SMART_RENDER },
+    }
+};</code></pre>
+</section>
+
+<hr>
+
+<!-- ═══════════════════════════════════════
+     BENCHMARK
+═══════════════════════════════════════ -->
+<section id="bench">
+<h2>ベンチマーク — Phase 1 vs Phase 2</h2>
+
+<table>
+<tr><th>項目</th><th>Phase 1 (CPU)</th><th>Phase 2 (GPU)</th><th>倍率</th></tr>
+<tr><td>1フレーム描画</td><td>~8ms</td><td>~0.08ms</td><td><strong>100x</strong></td></tr>
+<tr><td>三角形塗りつぶし</td><td>手動スラブ</td><td>GPU 自動</td><td>GPU 圧勝</td></tr>
+<tr><td>深度テスト</td><td>手動 Z バッファ</td><td>GPU 自動</td><td>GPU 圧勝</td></tr>
+<tr><td>コード行数</td><td>~400 行</td><td>~200 行 (C++) + 50 行 (GLSL)</td><td>—</td></tr>
+<tr><td>理解しやすさ</td><td>全て明示的</td><td>ブラックボックスあり</td><td>Phase 1 が優位</td></tr>
+</table>
+
+<div class="callout tip">
+  <div class="callout-title">学習戦略</div>
+  <p>Phase 1 で「なぜそう動くか」を理解してから Phase 2 に進む。GPU が何を自動化しているかを知らずに GPU だけ学ぶと、バグ時に詰まる。</p>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     ROADMAP
+═══════════════════════════════════════ -->
+<section id="roadmap">
+<h2>次のステップ — 発展ロードマップ</h2>
+
+<div class="phase-grid">
+  <div class="phase-card">
+    <h4>レイトレーシング</h4>
+    <p>スラブ法の延長。光線と三角形の交差判定を BVH で高速化。</p>
+  </div>
+  <div class="phase-card">
+    <h4>Vulkan / Metal</h4>
+    <p>OpenGL の次世代 API。GPU メモリ管理を明示的に行う。</p>
+  </div>
+  <div class="phase-card">
+    <h4>Houdini HDK (C++)</h4>
+    <p>Python SOP から C++ SOP へ。本番品質の HDA 開発。</p>
+  </div>
+  <div class="phase-card">
+    <h4>OpenVDB ネイティブ</h4>
+    <p>pyopenvdb を超えた高性能 VDB 操作。映像業界の標準フォーマット。</p>
+  </div>
+  <div class="phase-card">
+    <h4>CUDA / ComputeShader</h4>
+    <p>BVH 構築・ダーティレクトを GPU で並列化。</p>
+  </div>
+  <div class="phase-card">
+    <h4>Premiere Pro プラグイン</h4>
+    <p>AE SDK の知識がそのまま使える。タイムライン統合。</p>
+  </div>
+</div>
+
+<h3>学習の優先順位</h3>
+<div class="callout tip">
+  <div class="callout-title">Priority Ladder</div>
+  <p><strong>1位</strong> フレームバッファを理解する（全ての基盤）</p>
+  <p><strong>2位</strong> DDA と固定小数点（速度最適化の思考法）</p>
+  <p><strong>3位</strong> スラブ + Z バッファ（3D の本質）</p>
+  <p><strong>4位</strong> GLSL シェーダー（CPU 実装を GPU に移植）</p>
+  <p><strong>5位</strong> BVH / LOD / ダーティレクト（プロ現場の最適化）</p>
+</div>
+
+<hr>
+<p style="color:var(--text3);font-size:12px;text-align:center;padding:20px 0;">
+QuickDraw Study Project — Full Application from Scratch<br>
+Apple QuickDraw (1984) → Modern Rendering Pipeline
+</p>
+</section>
+
+</main>
+</body>
+</html>
