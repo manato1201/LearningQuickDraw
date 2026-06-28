@@ -15,8 +15,11 @@ struct Vec3 {
     Vec3 operator-(const Vec3& o) const { return Vec3(x - o.x, y - o.y, z - o.z); }
     Vec3 operator*(float s)       const { return Vec3(x * s,   y * s,   z * s  ); }
 
-    float dot(const Vec3& o) const { return x*o.x + y*o.y + z*o.z; }
-    float length()           const { return std::sqrt(dot(*this)); }
+    float dot(const Vec3& o)   const { return x*o.x + y*o.y + z*o.z; }
+    float length()             const { return std::sqrt(dot(*this)); }
+    Vec3  cross(const Vec3& o) const {
+        return Vec3(y*o.z - z*o.y, z*o.x - x*o.z, x*o.y - y*o.x);
+    }
 };
 
 // ================================================================
@@ -145,15 +148,20 @@ inline Vec3 Mat4::transform(const Vec3& v) const {
 inline ProjVert perspectiveProject(const Vec3& v, int screenW, int screenH, float fovDeg = 60.0f) {
     float fovRad = fovDeg * (3.14159265f / 180.0f);
     float f      = 1.0f / std::tan(fovRad * 0.5f);
-    float z      = v.z + 4.0f;  // camera offset: push scene 4 units in front
+    float z      = v.z + 4.0f;
     if (z < 0.001f) z = 0.001f;
 
-    float px = (v.x * f) / z;
-    float py = (v.y * f) / z;
+    float sx = (v.x * f / z) *  (float)screenW * 0.5f + (float)screenW * 0.5f;
+    float sy = (v.y * f / z) * -(float)screenH * 0.5f + (float)screenH * 0.5f;
+    return ProjVert(sx, sy, z);
+}
 
-    float sx = px *  (float)screenW * 0.5f + (float)screenW * 0.5f;
-    float sy = py * -(float)screenH * 0.5f + (float)screenH * 0.5f;
-
-    // depth: smaller z = closer to camera
+// Fast variant: accepts precomputed f = 1/tan(fovRad*0.5) — avoids tan() per vertex
+inline ProjVert perspectiveProjectFast(const Vec3& v, int screenW, int screenH, float f) {
+    float z = v.z + 4.0f;
+    if (z < 0.001f) z = 0.001f;
+    float invZ = 1.0f / z;
+    float sx = (v.x * f * invZ) *  (float)screenW * 0.5f + (float)screenW * 0.5f;
+    float sy = (v.y * f * invZ) * -(float)screenH * 0.5f + (float)screenH * 0.5f;
     return ProjVert(sx, sy, z);
 }

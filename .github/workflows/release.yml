@@ -1,0 +1,66 @@
+name: Build & Release (Windows)
+
+# Triggers:
+#   - Push a version tag:  git tag v1.0 && git push origin v1.0
+#   - Or run manually from GitHub Actions UI (workflow_dispatch)
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write   # needed to create/upload releases
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ---- mini-renderer (CPU software renderer) ----
+      - name: Configure mini-renderer
+        run: cmake -S mini-renderer -B mini-renderer/build -G "Visual Studio 17 2022"
+
+      - name: Build mini-renderer
+        run: cmake --build mini-renderer/build --config Release
+
+      # ---- mini-renderer-gpu (OpenGL 3.3) ----
+      - name: Configure mini-renderer-gpu
+        run: cmake -S mini-renderer-gpu -B mini-renderer-gpu/build -G "Visual Studio 17 2022"
+
+      - name: Build mini-renderer-gpu
+        run: cmake --build mini-renderer-gpu/build --config Release
+
+      # ---- Package artifacts ----
+      - name: Package mini-renderer
+        shell: pwsh
+        run: |
+          # SDL2 is linked statically, so only the .exe is needed
+          Compress-Archive `
+            -Path mini-renderer/build/Release/mini-renderer.exe `
+            -DestinationPath mini-renderer-windows.zip
+
+      - name: Package mini-renderer-gpu
+        shell: pwsh
+        run: |
+          # Needs the exe AND the shaders/ directory next to it
+          $pkg = "mini-renderer-gpu-pkg"
+          New-Item -ItemType Directory -Force $pkg | Out-Null
+          Copy-Item mini-renderer-gpu/build/Release/mini-renderer-gpu.exe $pkg/
+          Copy-Item -Recurse mini-renderer-gpu/build/Release/shaders       $pkg/shaders
+          Compress-Archive -Path "$pkg/*" -DestinationPath mini-renderer-gpu-windows.zip
+
+      # ---- Upload to GitHub Releases ----
+      - name: Create GitHub Release and upload binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          # For workflow_dispatch (no tag), create a rolling "latest-dev" pre-release
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'latest-dev' }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || 'Latest dev build' }}
+          prerelease: ${{ github.ref_type != 'tag' }}
+          generate_release_notes: true
+          files: |
+            mini-renderer-windows.zip
+            mini-renderer-gpu-windows.zip

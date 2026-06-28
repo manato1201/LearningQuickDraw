@@ -76,6 +76,9 @@ int main(int argc, char* argv[]) {
     bool  wireframe = false;
     bool  running   = true;
 
+    // Precompute perspective factor once — fov never changes
+    const float PROJ_F = 1.0f / std::tan(60.0f * (3.14159265f / 180.0f) * 0.5f);
+
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -101,11 +104,12 @@ int main(int argc, char* argv[]) {
                  * Mat4::rotationY(yaw)
                  * Mat4::rotationZ(roll);
 
-        // Transform and project all vertices
+        // Transform all vertices in view space, then project
+        Vec3     viewVerts[8];
         ProjVert projected[8];
         for (int i = 0; i < 8; i++) {
-            Vec3 v = rot.transform(CUBE_VERTS[i]);
-            projected[i] = perspectiveProject(v, W, H, 60.0f);
+            viewVerts[i] = rot.transform(CUBE_VERTS[i]);
+            projected[i] = perspectiveProjectFast(viewVerts[i], W, H, PROJ_F);
         }
 
         if (wireframe) {
@@ -124,6 +128,15 @@ int main(int argc, char* argv[]) {
                 int a = CUBE_FACES[f][0];
                 int b = CUBE_FACES[f][1];
                 int c = CUBE_FACES[f][2];
+
+                // Backface cull: skip triangles facing away from camera.
+                // Screen-space signed area < 0 → front-facing (y-down convention).
+                float ax = projected[b].sx - projected[a].sx;
+                float ay = projected[b].sy - projected[a].sy;
+                float bx = projected[c].sx - projected[a].sx;
+                float by = projected[c].sy - projected[a].sy;
+                if (ax * by - ay * bx >= 0.0f) continue;
+
                 renderer.fillTriangleZ(
                     (int)projected[a].sx, (int)projected[a].sy, projected[a].depth,
                     (int)projected[b].sx, (int)projected[b].sy, projected[b].depth,

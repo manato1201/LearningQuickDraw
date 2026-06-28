@@ -106,19 +106,32 @@ void Renderer::fillTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint
     int totalH = y2 - y0;
     if (totalH == 0) return;
 
+    // Fixed-point slopes (16.16): one division per half, no per-scanline division
+    const int SHIFT = 16;
+
+    int dxa      = ((x2 - x0) << SHIFT) / totalH;
+    int xa_fp    = x0 << SHIFT;
+
+    int segH1    = y1 - y0;
+    int dxb_up   = segH1 > 0 ? ((x1 - x0) << SHIFT) / segH1 : 0;
+    int xb_up_fp = x0 << SHIFT;
+
+    int segH2    = y2 - y1;
+    int dxb_dn   = segH2 > 0 ? ((x2 - x1) << SHIFT) / segH2 : 0;
+    int xb_dn_fp = x1 << SHIFT;
+
     for (int y = y0; y <= y2; y++) {
-        bool upper = (y < y1) || (y1 == y0);
+        int xa = xa_fp >> SHIFT;
+        int xb;
 
-        int xa = x0 + (x2 - x0) * (y - y0) / totalH;
-
-        int xb = 0;
-        if (upper) {
-            int segH = y1 - y0;
-            xb = (segH == 0) ? x0 : x0 + (x1 - x0) * (y - y0) / segH;
+        if (y < y1 || y1 == y0) {
+            xb = xb_up_fp >> SHIFT;
+            xb_up_fp += dxb_up;
         } else {
-            int segH = y2 - y1;
-            xb = (segH == 0) ? x1 : x1 + (x2 - x1) * (y - y1) / segH;
+            xb = xb_dn_fp >> SHIFT;
+            xb_dn_fp += dxb_dn;
         }
+        xa_fp += dxa;
 
         if (xa > xb) std::swap(xa, xb);
         for (int x = xa; x <= xb; x++) {
@@ -149,7 +162,16 @@ void Renderer::fillTriangleZ(
     int totalH = y2 - y0;
     if (totalH == 0) return;
 
+    // Precompute clip/fb bounds once — avoids per-pixel branch
+    int fbW = m_fb.width(),  fbH = m_fb.height();
+    int yLo = m_clipEnabled ? std::max(m_clipY,             0)         : 0;
+    int yHi = m_clipEnabled ? std::min(m_clipY + m_clipH - 1, fbH - 1) : fbH - 1;
+    int xLo = m_clipEnabled ? std::max(m_clipX,             0)         : 0;
+    int xHi = m_clipEnabled ? std::min(m_clipX + m_clipW - 1, fbW - 1) : fbW - 1;
+
     for (int y = y0; y <= y2; y++) {
+        if (y < yLo || y > yHi) continue;  // skip scanlines outside clip/fb
+
         bool upper = (y < y1) || (y1 == y0);
 
         float t = (float)(y - y0) / (float)totalH;
@@ -179,21 +201,22 @@ void Renderer::fillTriangleZ(
             }
         }
 
-        // Make xa <= xb
         if (xa > xb) { std::swap(xa, xb); std::swap(za, zb); }
 
-        // Fill scanline with Z interpolation
-        int span = xb - xa;
-        for (int x = xa; x <= xb; x++) {
-            float frac = (span > 0) ? (float)(x - xa) / (float)span : 0.0f;
-            float z    = za + (zb - za) * frac;
+        // Clamp span to valid X range
+        int xStart = std::max(xa, xLo);
+        int xEnd   = std::min(xb, xHi);
+        if (xStart > xEnd) continue;
 
-            if (m_fb.testAndSetDepth(x, y, z)) {
-                if (!m_clipEnabled ||
-                    (x >= m_clipX && x < m_clipX + m_clipW &&
-                     y >= m_clipY && y < m_clipY + m_clipH)) {
-                    m_fb.setPixel(x, y, color);
-                }
+        // Incremental Z step — eliminates per-pixel float division
+        int   span  = xb - xa;
+        float zStep = (span > 0) ? (zb - za) / (float)span : 0.0f;
+        float z     = za + zStep * (float)(xStart - xa);
+
+        // Hot path: bounds already guaranteed by clamping above
+        for (int x = xStart; x <= xEnd; x++, z += zStep) {
+            if (m_fb.testAndSetDepthUnchecked(x, y, z)) {
+                m_fb.setPixelUnchecked(x, y, color);
             }
         }
     }

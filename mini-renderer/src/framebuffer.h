@@ -20,6 +20,16 @@ public:
     float getDepth(int x, int y) const;
     bool  testAndSetDepth(int x, int y, float depth);
 
+    // Unchecked fast paths — caller must guarantee x/y are in bounds
+    void setPixelUnchecked(int x, int y, uint32_t color) {
+        m_pixels[y * m_width + x] = color;
+    }
+    bool testAndSetDepthUnchecked(int x, int y, float depth) {
+        float& slot = m_depth[y * m_width + x];
+        if (depth < slot) { slot = depth; return true; }
+        return false;
+    }
+
     int  width()  const { return m_width;  }
     int  height() const { return m_height; }
 

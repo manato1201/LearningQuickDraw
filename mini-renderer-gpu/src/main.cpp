@@ -17,40 +17,22 @@ static void matIdentity(float m[16]) {
     m[0] = m[5] = m[10] = m[15] = 1.0f;
 }
 
-static void matMul(const float a[16], const float b[16], float out[16]) {
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++) {
-            out[i*4+j] = 0.0f;
-            for (int k = 0; k < 4; k++)
-                out[i*4+j] += a[i*4+k] * b[k*4+j];
-        }
-}
+// Combined Rz*Ry*Rx rotation — 6 trig calls, no matrix multiply needed.
+// Expands the analytical product and writes directly into column-major output.
+static void matRotXYZ(float pitch, float yaw, float roll, float m[16]) {
+    float cx = cosf(pitch), sx = sinf(pitch);
+    float cy = cosf(yaw),   sy = sinf(yaw);
+    float cz = cosf(roll),  sz = sinf(roll);
 
-// X-axis rotation (Pitch) - column-major
-static void matRotX(float angle, float m[16]) {
-    matIdentity(m);
-    float c = cosf(angle);
-    float s = sinf(angle);
-    m[5]  =  c;  m[6]  = s;
-    m[9]  = -s;  m[10] = c;
-}
-
-// Y-axis rotation (Yaw) - column-major
-static void matRotY(float angle, float m[16]) {
-    matIdentity(m);
-    float c = cosf(angle);
-    float s = sinf(angle);
-    m[0]  =  c;  m[2]  = -s;
-    m[8]  =  s;  m[10] =  c;
-}
-
-// Z-axis rotation (Roll) - column-major
-static void matRotZ(float angle, float m[16]) {
-    matIdentity(m);
-    float c = cosf(angle);
-    float s = sinf(angle);
-    m[0] =  c;  m[1] = s;
-    m[4] = -s;  m[5] = c;
+    // Column-major: m[col*4 + row]
+    // Column 0
+    m[0]  =  cy*cz;             m[1]  =  cy*sz;             m[2]  = -sy;      m[3]  = 0.0f;
+    // Column 1
+    m[4]  =  sx*sy*cz - cx*sz;  m[5]  =  sx*sy*sz + cx*cz;  m[6]  =  sx*cy;  m[7]  = 0.0f;
+    // Column 2
+    m[8]  =  cx*sy*cz + sx*sz;  m[9]  =  cx*sy*sz - sx*cz;  m[10] =  cx*cy;  m[11] = 0.0f;
+    // Column 3
+    m[12] =  0.0f;              m[13] =  0.0f;               m[14] =  0.0f;   m[15] = 1.0f;
 }
 
 // ================================================================
@@ -112,18 +94,13 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // Build rotation matrix (Pitch / Yaw / Roll)
-        // Phase 1: Mat4::rotationX/Y/Z + operator*  と同じロジック
+        // Build rotation matrix (Pitch / Yaw / Roll) — single combined matrix
         pitch += 0.010f;
         yaw   += 0.020f;
         roll  += 0.005f;
 
-        float rx[16], ry[16], rz[16], rxy[16], rot[16];
-        matRotX(pitch, rx);
-        matRotY(yaw,   ry);
-        matRotZ(roll,  rz);
-        matMul(rx, ry,  rxy);
-        matMul(rxy, rz, rot);
+        float rot[16];
+        matRotXYZ(pitch, yaw, roll, rot);
 
         renderer.setRotation(rot);
 
