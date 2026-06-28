@@ -4,6 +4,19 @@ Apple QuickDraw (1984) のアルゴリズムを起点に、現代の描画パイ
 
 ---
 
+## ビルド済みバイナリ（推奨）
+
+CMake 環境がない場合は **GitHub Releases** からダウンロードして即実行できます。
+
+| パッケージ | 内容 |
+|---|---|
+| `mini-renderer-windows.zip` | `mini-renderer.exe`（SDL2 静的リンク済み、追加DLL不要） |
+| `mini-renderer-gpu-windows.zip` | `mini-renderer-gpu.exe` + `shaders/` フォルダ |
+
+> **Releases:** https://github.com/manato1201/LearningQuickDraw/releases
+
+---
+
 ## プロジェクト構成
 
 ```
@@ -24,9 +37,16 @@ LearningQuickDraw/
 
 **実装内容:** DDA ライン描画 / 固定小数点最適化 / スラブ三角形ラスタライズ / Z バッファ / Pitch・Yaw・Roll 回転 / 透視投影
 
+**パフォーマンス最適化済み:**
+- `fillTriangleZ` 内ループ: ピクセルごとの除算 → 増分Z加算に変更
+- バックフェイスカリング: スクリーン空間符号付き面積で裏面を除去（約50%削減）
+- `perspectiveProjectFast`: FOV係数をフレームループ外で1回だけ計算
+- `fillTriangle`: 固定小数点スロープ（スキャンラインごとの除算を廃止）
+- `Framebuffer`: 境界チェックなしの高速パス追加
+
 **動作確認済み:** ✅ リアルタイム回転キューブ表示
 
-### ビルド・実行
+### ビルド・実行（ソースから）
 
 ```bash
 cd mini-renderer
@@ -39,9 +59,8 @@ cmake --build build --config Release
 
 | キー | 動作 |
 |---|---|
-| `W` / `S` | Pitch 回転 |
-| `A` / `D` | Yaw 回転 |
-| `Q` / `E` | Roll 回転 |
+| `Space` | ワイヤーフレーム / ソリッド 切り替え |
+| `ESC` | 終了 |
 
 ---
 
@@ -49,9 +68,12 @@ cmake --build build --config Release
 
 **実装内容:** OpenGL 3.3 Core / GLSL バーテックス・フラグメントシェーダー / HLSL 参照ファイル / CPU・GPU タイマー比較
 
+**パフォーマンス最適化済み:**
+- `matRotXYZ`: 3回の行列生成+2回の行列積 → sin/cos6値から結合回転行列を直接構築（128mul+96add → 18mul+6add）
+
 **動作確認済み:** ✅ ウィンドウタイトルに FPS・ms 表示
 
-### ビルド・実行
+### ビルド・実行（ソースから）
 
 **依存: [GLAD2](https://gen.glad.dav1d.de/) (cmake FetchContent で自動取得)**
 
@@ -210,8 +232,21 @@ ae-fluid-effect.aex
 |---|---|
 | [docs/PROJECT_DOCUMENT.md](docs/PROJECT_DOCUMENT.md) | 全フェーズ技術ドキュメント |
 | [docs/PROJECT_DOCUMENT.html](docs/PROJECT_DOCUMENT.html) | HTML 版（ダークテーマ） |
-| [docs/LECTURE_NOTES.md](docs/LECTURE_NOTES.md) | 講義資料 10講 |
+| [docs/LECTURE_NOTES.md](docs/LECTURE_NOTES.md) | 講義資料 11講（パフォーマンス最適化含む） |
 | [docs/LECTURE_NOTES.html](docs/LECTURE_NOTES.html) | HTML 版（カラーコード付き） |
+| [mini-renderer/DOCUMENT.md](mini-renderer/DOCUMENT.md) | Phase 1 詳細技術ドキュメント |
+
+## CI / リリース
+
+GitHub Actions でプッシュされたタグから自動ビルド・リリースを生成します。
+
+```bash
+# タグを付けて push するだけで GitHub Releases に .zip が自動生成される
+git tag v1.0
+git push origin v1.0
+```
+
+ワークフロー: [.github/workflows/release.yml](.github/workflows/release.yml)
 
 ---
 

@@ -581,6 +581,195 @@ print(f"Time: {(time.perf_counter()-t0)*1000:.2f}ms")
 
 ---
 
+## 第11講：レンダラー最適化の実践 — ボトルネックを潰す
+
+### 11.1 「計測してから最適化」の実例
+
+第9講で述べた「計測なしに最適化するな」を実際の Phase 1 コードで実践します。  
+mini-renderer に対してプロファイリングを行い、以下のボトルネックを特定しました。
+
+```
+フレームごとの処理コスト（対策前）:
+  fillTriangleZ 内ループ:  ピクセルごとに float 除算  ← 最大ホットスポット
+  perspectiveProject:       頂点ごとに tan() を計算    ← 8回/frame
+  fillTriangle:             スキャンラインごとに整数除算
+  バックフェイスカリング:   なし (全12三角形を処理)
+```
+
+### 11.2 バックフェイスカリング — 「描かない」が最強
+
+最も費用対効果が高い最適化は「**そもそも処理しない**」ことです。
+
+キューブの6面中、カメラに背を向けている面（裏面）は常に見えません。  
+スクリーン空間の符号付き面積でこれを判定します。
+
+```cpp
+// 三角形 (a, b, c) のスクリーン空間符号付き面積
+float ax = projected[b].sx - projected[a].sx;
+float ay = projected[b].sy - projected[a].sy;
+float bx = projected[c].sx - projected[a].sx;
+float by = projected[c].sy - projected[a].sy;
+float crossZ = ax * by - ay * bx;
+//  crossZ >= 0: 時計回り（y下向き座標系） = 裏面 → スキップ
+if (crossZ >= 0.0f) continue;
+```
+
+**なぜこれで分かるか:**
+- y 下向きスクリーン座標では、反時計回りの三角形が正面を向いている
+- 外積の z 成分が負 = 反時計回り = 前面
+- 外積の z 成分が正 = 時計回り = 裏面
+
+**効果:** 毎フレーム平均 **約50%** の `fillTriangleZ` 呼び出しをスキップ。
+
+> **QuickDraw との対応**: Ch3 の `SetClip / putPixel` が「画面外ピクセルを棄却」するように、  
+> バックフェイスカリングは「見えない面の全ピクセルをまとめて棄却」するクリッピングの3D版です。
+
+---
+
+### 11.3 増分Z補間 — 除算を加算に変換
+
+`fillTriangleZ` の内ループは描画の最内ループです。  
+1フレームに数千〜数万回実行されます。
+
+```cpp
+// Before: ピクセルごとに除算 (span ピクセル分繰り返す)
+for (int x = xa; x <= xb; x++) {
+    float frac = (float)(x - xa) / (float)span;  // ← 除算！
+    float z    = za + (zb - za) * frac;
+    ...
+}
+```
+
+除算は加算の約10〜30倍のコストがかかります。  
+固定小数点 DDA（第2講）と全く同じ原理で解決できます。
+
+```cpp
+// After: 1回の除算 → その後は加算のみ
+float zStep = (span > 0) ? (zb - za) / (float)span : 0.0f;
+float z     = za + zStep * (float)(xStart - xa);  // クランプ分を補正
+for (int x = xStart; x <= xEnd; x++, z += zStep) {
+    ...
+}
+```
+
+**原理**: 等差数列の差分を事前計算し、インクリメントで次の値を得る。  
+これは DDA（Digital Differential Analyzer）の名の通り「差分方程式をデジタル化する」本質そのものです。
+
+---
+
+### 11.4 クリップ処理の移動 — 内ループから外へ
+
+クリッピングは必要ですが、「どこで行うか」が重要です。
+
+```cpp
+// Before: 内ループ内でピクセルごとに境界チェック（O(ピクセル数)）
+for (int x = xa; x <= xb; x++) {
+    if (!m_clipEnabled ||
+        (x >= m_clipX && x < m_clipX + m_clipW &&
+         y >= m_clipY && y < m_clipY + m_clipH)) {  // ← 毎ピクセル判定
+        m_fb.setPixel(x, y, color);
+    }
+}
+
+// After: スキャンライン開始前にクランプ（O(1) 前処理 → 内ループでゼロチェック）
+int xStart = std::max(xa, xLo);
+int xEnd   = std::min(xb, xHi);
+if (xStart > xEnd) continue;
+
+for (int x = xStart; x <= xEnd; x++, z += zStep) {
+    // x, y が有効範囲内であることが保証されている
+    m_fb.setPixelUnchecked(x, y, color);  // ← 境界チェックなし
+}
+```
+
+**考え方のパターン:**
+```
+ループ外で計算できることは、ループ前に計算する。
+「ループ不変式のホイスティング」と呼ばれる古典的最適化技法。
+```
+
+---
+
+### 11.5 FOV係数のホイスティング
+
+`perspectiveProject()` は毎呼び出しで `tan()` を計算していました。
+
+```cpp
+// Before: 8頂点 × 毎フレーム = 8回の tan() 呼び出し
+float f = 1.0f / std::tan(fovRad * 0.5f);  // ← 変化しないのに毎回計算
+```
+
+FOV はフレーム間で変化しません。「変化しない計算をループ外に出す」のが原則です。
+
+```cpp
+// After: ループ外で1回だけ (0回/frame)
+const float PROJ_F = 1.0f / std::tan(60.0f * (3.14159265f / 180.0f) * 0.5f);
+
+// ループ内: tan() の代わりにプリコンピュートした定数を渡す
+projected[i] = perspectiveProjectFast(viewVerts[i], W, H, PROJ_F);
+```
+
+---
+
+### 11.6 行列演算の解析展開（GPU 版）
+
+mini-renderer-gpu では毎フレーム3回の行列生成 + 2回の行列乗算を行っていました。
+
+```cpp
+// Before: 6 trig + 128 mul + 96 add
+matRotX(pitch, rx);
+matRotY(yaw,   ry);
+matRotZ(roll,  rz);
+matMul(rx, ry, rxy);   // 4x4 乗算 = 64 mul + 48 add
+matMul(rxy, rz, rot);  // 4x4 乗算 = 64 mul + 48 add
+```
+
+Rz · Ry · Rx を数学的に展開すると、結果の各要素を直接書き出せます。
+
+```cpp
+// After: 6 trig + 18 mul + 6 add
+static void matRotXYZ(float pitch, float yaw, float roll, float m[16]) {
+    float cx = cosf(pitch), sx = sinf(pitch);
+    float cy = cosf(yaw),   sy = sinf(yaw);
+    float cz = cosf(roll),  sz = sinf(roll);
+    // 結果行列を直接書き出す (Rz * Ry * Rx の解析解)
+    m[0] =  cy*cz;             m[1] =  cy*sz;             m[2] = -sy;    ...
+    m[4] =  sx*sy*cz - cx*sz;  m[5] =  sx*sy*sz + cx*cz;  m[6] =  sx*cy; ...
+    m[8] =  cx*sy*cz + sx*sz;  m[9] =  cx*sy*sz - sx*cz;  m[10] = cx*cy; ...
+}
+```
+
+> **【学生への問い】** なぜ `cos/sin` は6回必要なのか？  
+> → 3軸それぞれに cos・sin のペアが必要 (cx,sx), (cy,sy), (cz,sz)。  
+> これ以上減らせない（3次元回転の自由度 = 3軸 = 最低6つの三角関数値が必要）。
+
+---
+
+### 11.7 最適化の優先順位 — 改訂版
+
+第9講の優先順位を、今回の実装に照らして具体化します。
+
+```
+効果大                              実装コスト
+──────────────────────────────────────────────
+バックフェイスカリング          少（8行）    ← 1000ピクセル分の演算を8行で消す
+   ↓
+ループ不変式のホイスティング    少（定数化）  ← tan() を定数に
+   ↓
+増分計算（DDA原理の応用）       少（前処理）  ← 除算→加算
+   ↓
+境界チェックの移動              少（クランプ） ← チェックをループ外に
+   ↓
+解析展開（行列の場合）          中（数学計算） ← 128mul → 18mul
+   ↓
+SIMD / 並列化                   大（複雑）    ← 最後の手段
+```
+
+> **実務の鉄則**: アルゴリズムレベルの最適化（カリング・ホイスティング）は  
+> マイクロ最適化（SIMD・並列化）より効果が大きいことが多い。
+
+---
+
 ## 第10講：まとめと次のステップ
 
 ### この講義で学んだこと
@@ -596,6 +785,7 @@ print(f"Time: {(time.perf_counter()-t0)*1000:.2f}ms")
 8. BVH: 空間を階層化して大規模シーンをO(log N)でクエリ
 9. GPU: CPU でやっていた処理を並列化した結果
 10. 実務: まず計測し、効果の大きいところから最適化する
+11. 最適化の王道: 「描かない」→「ホイスティング」→「DDA原理の応用」→「解析展開」
 ```
 
 ### 次に学ぶべきこと
@@ -626,6 +816,17 @@ print(f"Time: {(time.perf_counter()-t0)*1000:.2f}ms")
 | 転送モード | 0303TransferModes.p | — | blend eq | `applyTransfer()` |
 | クリッピング | 0310RegionClipping.p | `setClipRect()` | scissor | `DirtyRect` |
 | 矩形演算 | 0403-0411 | `AABB` class | — | `AABB` class |
+
+### 最適化テクニック索引（第11講）
+
+| テクニック | 適用箇所 | 効果 |
+|---|---|---|
+| バックフェイスカリング | `main.cpp` ソリッド描画ループ | ~50% の三角形をスキップ |
+| 増分Z補間（DDA原理） | `fillTriangleZ` 内ループ | 除算×スパン → 加算×スパン |
+| ループ不変式ホイスティング | `perspectiveProjectFast` | `tan()` 8回/frame → 0回 |
+| 境界クランプ+unchecked | `fillTriangleZ` → `Framebuffer` | 内ループから条件分岐を除去 |
+| 固定小数点スロープ | `fillTriangle` | スキャンラインごと除算 → 1回 |
+| 行列の解析展開 | `matRotXYZ` (GPU版) | 128mul+96add → 18mul+6add |
 | 3D 回転 | Graf3D Pitch/Yaw/Roll | `Mat4::rotX/Y/Z` | `uniform mat4` | — |
 | 透視投影 | Graf3D ViewAngle | `perspectiveProject()` | VS | `raymarch` |
 | ピクセルバッファ | GrafPort portBits | `Framebuffer` | GL texture | `PF_EffectWorld` |

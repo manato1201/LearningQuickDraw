@@ -127,15 +127,33 @@ bool testAndSetDepth(int x, int y, float depth) {
 }
 ```
 
+### パフォーマンス最適化（実施済み）
+
+ホットスポット分析から特定した6つの改善をすべて適用済み。
+
+| 最適化 | 変更前 | 変更後 |
+|---|---|---|
+| バックフェイスカリング | 12三角形/frame | ~6三角形/frame（符号付き面積判定） |
+| `fillTriangleZ` Z補間 | 除算×ピクセル数 | `zStep` 増分加算（除算1回/span） |
+| クリップ境界テスト | 内ループで毎ピクセル | スキャンライン事前クランプ |
+| `Framebuffer` 境界チェック | 毎呼び出し | unchecked 高速パス（内ループ限定） |
+| `fillTriangle` スロープ | スキャンラインごと整数除算 | 16.16 固定小数点増分 |
+| FOV係数 `tan()` | 8回/frame | フレームループ外で1回のみ |
+
+追加 API:
+- `Framebuffer::setPixelUnchecked()` / `testAndSetDepthUnchecked()` — 境界保証済みの高速パス
+- `Vec3::cross()` — 外積（バックフェイスカリングで使用）
+- `perspectiveProjectFast(v, w, h, f)` — 事前計算 `f` を受け取る高速版
+
 ### ファイル構成
 ```
 mini-renderer/
 ├── CMakeLists.txt      SDL2 自動取得
 └── src/
-    ├── math3d.h        Vec3 / Mat4 / perspectiveProject / ProjVert
-    ├── framebuffer.h/cpp  色バッファ + 深度バッファ
-    ├── renderer.h/cpp  DDA / スラブ / Z バッファ / クリッピング
-    └── main.cpp        回転キューブ メインループ
+    ├── math3d.h        Vec3(+cross) / Mat4 / perspectiveProject / perspectiveProjectFast
+    ├── framebuffer.h/cpp  色バッファ + 深度バッファ (unchecked 高速パス付き)
+    ├── renderer.h/cpp  DDA / スラブ / Z バッファ / クリッピング（最適化済み）
+    └── main.cpp        回転キューブ メインループ（バックフェイスカリング + FOVプリコンピュート）
 ```
 
 ---
@@ -164,6 +182,25 @@ mini-renderer/
 | NDC Z 範囲 | `[-1, 1]` | `[0, 1]` |
 | 行列乗算 | `*` 演算子 | `mul()` 関数 |
 
+### パフォーマンス最適化（実施済み）
+
+| 最適化 | 変更前 | 変更後 |
+|---|---|---|
+| 回転行列生成 | `matRotX` + `matRotY` + `matRotZ` + `matMul` × 2 | `matRotXYZ` 1関数（解析展開） |
+| 演算量 | 6 trig + 128 mul + 96 add | 6 trig + 18 mul + 6 add |
+
+`matRotXYZ` は Rz·Ry·Rx を解析的に展開し、列優先 OpenGL 形式で直接書き出す：
+
+```cpp
+static void matRotXYZ(float pitch, float yaw, float roll, float m[16]) {
+    float cx = cosf(pitch), sx = sinf(pitch);
+    float cy = cosf(yaw),   sy = sinf(yaw);
+    float cz = cosf(roll),  sz = sinf(roll);
+    m[0] = cy*cz;  m[1] = cy*sz;  m[2] = -sy;    m[3] = 0.0f;
+    m[4] = sx*sy*cz - cx*sz;  ...
+}
+```
+
 ### ファイル構成
 ```
 mini-renderer-gpu/
@@ -173,7 +210,7 @@ mini-renderer-gpu/
 └── src/
     ├── gl_renderer.h/cpp  OpenGL 描画クラス + GPU タイマー
     ├── timer.h/cpp        CPU/GPU 時間計測
-    └── main.cpp           メインループ (FPS + ms 表示)
+    └── main.cpp           メインループ (matRotXYZ 最適化済み)
 ```
 
 ---
@@ -349,5 +386,22 @@ QuickDraw アルゴリズム知識ベース
 | Houdini HDA | `houdini-fluid-hda/` | Python | Phase 3-2 |
 | 汎用最適化ライブラリ | `render-optimizer/` | Python | Phase 3-3 |
 | AE プラグイン | `ae-fluid-effect/` | C++ | Phase 4 |
-| 通知システム | `(GAS + Cloud Run)` | JS / Python | 依頼フォーム |
-| 依頼フォーム | `(Google Forms)` | — | ツール受注 |
+
+---
+
+## 12. CI / リリース
+
+GitHub Actions でタグ push または手動実行から自動ビルド・配布を行う。
+
+**ワークフロー:** `.github/workflows/release.yml`
+
+| トリガー | 動作 |
+|---|---|
+| `git tag v*` + push | 正式リリースを GitHub Releases に公開 |
+| GitHub Actions UI で「Run workflow」 | `latest-dev` プレリリースを更新 |
+
+**成果物:**
+- `mini-renderer-windows.zip` — SDL2 静的リンク済み `.exe`
+- `mini-renderer-gpu-windows.zip` — `.exe` + `shaders/` フォルダ
+
+CMake なしで別 PC で実行したい場合は [GitHub Releases](https://github.com/manato1201/LearningQuickDraw/releases) から zip をダウンロードして展開するだけでよい。
